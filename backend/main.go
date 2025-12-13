@@ -39,6 +39,24 @@ func main() {
 	api.Post("/login", controllers.Login)
 	api.Post("/register", controllers.Register)
 
+	loans := api.Group("/loans")
+	loans.Get("/", controllers.GetLoans)
+	loans.Get("/upcoming", controllers.GetUpcomingPayments)
+	loans.Get("/:id", controllers.GetLoan)
+	loans.Post("/", controllers.CreateLoan)
+	loans.Put("/:id", controllers.UpdateLoan)
+	loans.Delete("/:id", controllers.DeleteLoan)
+	loans.Post("/:id/pay", controllers.PayLoan)
+	loans.Get("/:id/calculate", controllers.CalculateMonthlyPayment)
+
+	debtors := api.Group("/debtors")
+	debtors.Get("/", controllers.GetDebtors)
+	debtors.Get("/filter", controllers.FilterDebtors)
+	debtors.Get("/loan/:loanId", controllers.GetDebtorsByLoan)
+	debtors.Post("/", controllers.CreateDebtor)
+	debtors.Put("/:id", controllers.UpdateDebtor)
+	debtors.Delete("/:id", controllers.DeleteDebtor)
+
 	// // setup routes
 	// frontend_routes := []string{
 	// 	"/",
