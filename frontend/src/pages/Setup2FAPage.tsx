@@ -51,7 +51,7 @@ export default function Setup2FAPage() {
                 <div style={{ maxWidth: '400px', margin: '40px auto', textAlign: 'center' }}>
                     <h1>Nustatykite 2FA</h1>
                     <p style={{ marginBottom: '20px' }}>
-                        Nuskenuokite šį kodą su Google Authenticator arba Authy programėle.
+                        Nuskenuokite šį kodą su 2FA programėle.
                     </p>
 
                     <div style={{ background: 'white', padding: '20px', display: 'inline-block', borderRadius: '10px', marginBottom: '20px' }}>
@@ -79,7 +79,7 @@ export default function Setup2FAPage() {
                         {error && <p style={{ color: 'var(--color-error)', marginBottom: '10px' }}>{error}</p>}
 
                         <button type="submit" disabled={loading}>
-                            {loading ? 'Tikrinama...' : 'Patvirtinti ir Baigti'}
+                            {loading ? 'Tikrinama...' : 'Patvirtinti'}
                         </button>
                     </form>
                 </div>

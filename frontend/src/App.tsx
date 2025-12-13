@@ -28,7 +28,7 @@ const menuItems: MenuItem[] = [
 
 function AppContent(): JSX.Element {
   const location = useLocation();
-  const hideSidebar = ['/', '/register', '/auth'].includes(location.pathname);
+  const hideSidebar = ['/', '/register', '/auth', '/setup-2fa'].includes(location.pathname);
 
   return (
     <div className="app-layout">
