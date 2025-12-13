@@ -62,6 +62,9 @@ func main() {
 
 	incomes := api.Group("/incomes")
 	incomes.Post("/create-income", controllers.CreateIncome)
+	incomes.Get("/", controllers.GetIncomes)
+	incomes.Get("/:id", controllers.GetIncome)
+	incomes.Put("/:id", controllers.UpdateIncome)
 
 	// // setup routes
 	// frontend_routes := []string{
