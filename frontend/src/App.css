@@ -89,8 +89,13 @@ body {
   padding: 0;
 }
 
+.sidebar-menu ul li.active a {
+  font-weight: 800;
+}
+
 .sidebar-menu li {
   padding: 10px;
+  font-weight: 500;
 }
 
 .sidebar-menu a {

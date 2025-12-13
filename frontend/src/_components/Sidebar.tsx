@@ -22,7 +22,17 @@ const SidebarMenu: React.FC<{ menuItems: MenuItem[] }> = ({ menuItems }) => {
 
                     return (
                         <li key={index} className={isActive ? 'active' : ''}>
-                            <NavLink to={item.path}>
+                            <NavLink 
+                                to={item.path}
+                                style={{ 
+                                    display: 'block', 
+                                    width: '100%', 
+                                    height: '100%', 
+                                    padding: '10px', 
+                                    textDecoration: 'none',
+                                    color: 'inherit'
+                                }}
+                            >
                                 {item.title}
                             </NavLink>
                         </li>
