@@ -4,6 +4,7 @@ import (
 	"github.com/KvietelaitisMartynas/froggywallet/backend/initializers"
 	"github.com/KvietelaitisMartynas/froggywallet/backend/models"
 	"github.com/gofiber/fiber/v2"
+	"github.com/pquerna/otp/totp"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -18,6 +19,15 @@ type RegisterRequest struct {
 	ElPastas        string `json:"el_pastas"`
 	Slaptazodis     string `json:"slaptazodis"`
 	VartotojoVardas string `json:"vartotojo_vardas"`
+}
+
+type Verify2FARequest struct {
+	Code string `json:"code"`
+}
+
+type Login2FARequest struct {
+	UserID uint   `json:"userId"`
+	Code   string `json:"code"`
 }
 
 func Login(c *fiber.Ctx) error {
@@ -42,6 +52,15 @@ func Login(c *fiber.Ctx) error {
 		return c.Status(401).JSON(fiber.Map{
 			"status":  "error",
 			"message": "Invalid credentials",
+		})
+	}
+
+	if user.TwoFactorEnabled {
+		return c.JSON(fiber.Map{
+			"status": "2fa_required",
+			"data": fiber.Map{
+				"userId": user.ID,
+			},
 		})
 	}
 
@@ -103,6 +122,102 @@ func Register(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"status":  "success",
 		"message": "User registered successfully",
+		"data": fiber.Map{
+			"id":      user.ID,
+			"email":   user.ElPastas,
+			"vardas":  user.Vardas,
+			"pavarde": user.Pavarde,
+		},
+	})
+}
+
+func Generate2FA(c *fiber.Ctx) error {
+	var user models.Narys
+
+	key, err := totp.Generate(totp.GenerateOpts{
+		Issuer:      "Froggywallet",
+		AccountName: user.ElPastas,
+	})
+
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Could not generate 2FA key",
+			"error":   err.Error(),
+		})
+	}
+
+	user.TwoFactorSecret = key.Secret()
+	initializers.DB.Save(&user)
+
+	return c.JSON(fiber.Map{
+		"status": "success",
+		"secret": key.Secret(),
+		"qr_url": key.URL(),
+	})
+}
+
+func Verify2FA(c *fiber.Ctx) error {
+	var body Verify2FARequest
+
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"status": "error",
+			"error":  "Invalid body",
+		})
+	}
+
+	var user models.Narys
+
+	valid := totp.Validate(body.Code, user.TwoFactorSecret)
+
+	if !valid {
+		return c.Status(400).JSON(fiber.Map{
+			"status": "error",
+			"error":  "Invalid Code",
+		})
+	}
+
+	user.TwoFactorEnabled = true
+	initializers.DB.Save(&user)
+
+	return c.JSON(fiber.Map{
+		"status":  "success",
+		"message": "2FA Enabled successfully",
+	})
+}
+
+func Login2FA(c *fiber.Ctx) error {
+	var body Login2FARequest
+
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"status": "error",
+			"error":  "Invalid body",
+		})
+	}
+
+	var user models.Narys
+
+	if err := initializers.DB.First(&user, body.UserID).Error; err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"status": "error",
+			"error":  "User not found",
+		})
+	}
+
+	valid := totp.Validate(body.Code, user.TwoFactorSecret)
+
+	if !valid {
+		return c.Status(400).JSON(fiber.Map{
+			"status": "error",
+			"error":  "Invalid Code",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status":  "success",
+		"message": "Login successful",
 		"data": fiber.Map{
 			"id":      user.ID,
 			"email":   user.ElPastas,

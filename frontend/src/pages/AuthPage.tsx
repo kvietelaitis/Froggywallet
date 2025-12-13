@@ -1,11 +1,21 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 export default function AuthPage(){
     const [code, setCode] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
+
+    const userId = location.state?.userId;
+
+        useEffect(() => {
+        // If someone tries to go to /auth directly without logging in first, kick them back
+        if (!userId) {
+            navigate('/login');
+        }
+    }, [userId, navigate]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

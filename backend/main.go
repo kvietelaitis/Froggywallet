@@ -39,6 +39,11 @@ func main() {
 	api.Post("/login", controllers.Login)
 	api.Post("/register", controllers.Register)
 
+	// 2FA Routes
+	api.Post("/login/2fa", controllers.Login2FA)       // The separate screen for 2FA Login
+	api.Post("/2fa/generate", controllers.Generate2FA) // For Settings: Generate QR Code
+	api.Post("/2fa/verify", controllers.Verify2FA)
+
 	// // setup routes
 	// frontend_routes := []string{
 	// 	"/",

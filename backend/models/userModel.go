@@ -6,11 +6,13 @@ import (
 
 type Narys struct {
 	gorm.Model
-	ElPastas        string `gorm:"unique;not null"` // Email
-	Slaptazodis     string `gorm:"not null"`        // Password (hashed)
-	Vardas          string `gorm:"not null"`        // First name
-	Pavarde         string `gorm:"not null"`        // Last name
-	VartotojoVardas string `gorm:"unique"`          // Username
+	ElPastas         string `gorm:"unique;not null"` // Email
+	Slaptazodis      string `gorm:"not null"`        // Password (hashed)
+	Vardas           string `gorm:"not null"`        // First name
+	Pavarde          string `gorm:"not null"`        // Last name
+	VartotojoVardas  string `gorm:"unique"`          // Username
+	TwoFactorSecret  string `json:"-"`
+	TwoFactorEnabled bool   `gorm:default:false`
 
 	// Relationships
 	Sektoriai          []Sektorius   `gorm:"foreignKey:NarysID"`
