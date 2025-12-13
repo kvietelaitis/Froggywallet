@@ -6,15 +6,15 @@ import (
 	"gorm.io/gorm"
 )
 
-type Pajamos struct {
+type Pajama struct {
 	gorm.Model
-	ID           uint      `gorm:"primaryKey"`
-	BiudzetasID  *uint     // Optional budget ID
-	Data         time.Time `gorm:"not null"`
-	Suma         float64   `gorm:"not null"`
-	Aprasymas    string    // Description
-	Valiuta      string    `gorm:"default:'EUR'"`             // Currency
-	IvedimosData time.Time `gorm:"default:CURRENT_TIMESTAMP"` // Entry date
+	ID          uint      `gorm:"primaryKey"`
+	BiudzetasID *uint     // Optional budget ID
+	Data        time.Time `gorm:"not null"`
+	Suma        float64   `gorm:"not null"`
+	Aprasymas   string    // Description
+	Valiuta     string    `gorm:"default:'EUR'"`             // Currency
+	IvedimoData time.Time `gorm:"default:CURRENT_TIMESTAMP"` // Entry date
 
 	// Relationships
 	Biudzetas *Biudzetas `gorm:"foreignKey:BiudzetasID"`

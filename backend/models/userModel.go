@@ -12,7 +12,7 @@ type Narys struct {
 	Pavarde          string `gorm:"not null"`        // Last name
 	VartotojoVardas  string `gorm:"unique"`          // Username
 	TwoFactorSecret  string `json:"-"`
-	TwoFactorEnabled bool   `gorm:default:false`
+	TwoFactorEnabled bool   `gorm:"default:false"`
 
 	// Relationships
 	Sektoriai          []Sektorius   `gorm:"foreignKey:NarysID"`
