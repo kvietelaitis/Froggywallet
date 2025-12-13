@@ -49,9 +49,9 @@ export default function Setup2FAPage() {
     return (
             <div className='auth-container'>
                 <div style={{ maxWidth: '400px', margin: '40px auto', textAlign: 'center' }}>
-                    <h1>Nustatykite 2FA</h1>
+                    <h1>2FA Setup</h1>
                     <p style={{ marginBottom: '20px' }}>
-                        Nuskenuokite šį kodą su 2FA programėle.
+                        Scan this QR code with a 2FA app.
                     </p>
 
                     <div style={{ background: 'white', padding: '20px', display: 'inline-block', borderRadius: '10px', marginBottom: '20px' }}>
@@ -64,7 +64,7 @@ export default function Setup2FAPage() {
 
                     <form onSubmit={handleSubmit}>
                         <div style={{ marginBottom: '15px' }}>
-                            <label style={{ display: 'block', marginBottom: '5px' }}>Įveskite 6 skaitmenų kodą:</label>
+                            <label style={{ display: 'block', marginBottom: '5px' }}>Enter 2FA code:</label>
                             <input
                                 type="text"
                                 value={code}
@@ -79,7 +79,7 @@ export default function Setup2FAPage() {
                         {error && <p style={{ color: 'var(--color-error)', marginBottom: '10px' }}>{error}</p>}
 
                         <button type="submit" disabled={loading}>
-                            {loading ? 'Tikrinama...' : 'Patvirtinti'}
+                            {loading ? 'Checking...' : 'Confirm'}
                         </button>
                     </form>
                 </div>

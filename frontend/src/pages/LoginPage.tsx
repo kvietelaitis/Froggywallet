@@ -50,7 +50,7 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit}>
           {error && <p style={{ color: 'var(--color-error)' }}>{error}</p>}
           <div style={{ marginBottom: '15px' }}>
-            <label>El. Paštas:</label>
+            <label>Email:</label>
             <input
               type="email"
               value={email}
@@ -59,7 +59,7 @@ export default function LoginPage() {
             />
           </div>
           <div style={{ marginBottom: '15px' }}>
-            <label>Slaptažodis:</label>
+            <label>Password:</label>
             <input
               type="password"
               value={password}
@@ -73,17 +73,17 @@ export default function LoginPage() {
               type="submit" 
               disabled={loading}
             >
-              {loading ? 'Vyksta prisijungimas' : 'Prisijungti'}
+              {loading ? 'Logging in...' : 'Log in'}
             </button>
 
-            <h3 style={{ marginTop: '20px' }}>Neturite paskyros?</h3>
+            <h3 style={{ marginTop: '20px' }}>Don't have an account?</h3>
 
             <button
               className='reg-button'
               type='button'
               onClick={() => navigate('/register')}
             >
-              Registruotis
+              Register
             </button>
           </div>
         </form>

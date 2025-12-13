@@ -37,11 +37,11 @@ export default function RegisterPage() {
   return (
      <div className='auth-container'>
       <div style={{ maxWidth: 420, margin: '40px auto' }}>
-        <h1>Registracija</h1>
+        <h1>Registration</h1>
 
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '15px', width: '100%' }}>
-            <label>Vartotojo vardas:</label>
+            <label>Username:</label>
             <input 
               value={vartotojo_vardas} 
               onChange={e=>setVartotojoVardas(e.target.value)} 
@@ -51,14 +51,14 @@ export default function RegisterPage() {
 
           <div style={{ display: 'flex', gap: '15px', marginBottom: '15px', width: '100%' }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <label>Vardas:</label>
+              <label>Name:</label>
               <input 
                 value={vardas} 
                 onChange={e=>setVardas(e.target.value)} 
                 required />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <label>Pavardė:</label>
+              <label>Lastname:</label>
               <input 
                 value={pavarde} 
                 onChange={e=>setPavarde(e.target.value)} 
@@ -67,7 +67,7 @@ export default function RegisterPage() {
           </div>
           
           <div style={{ marginBottom: '15px', width: '100%' }}>
-            <label>El. paštas:</label>
+            <label>Email:</label>
             <input 
               type="email"
               value={el_pastas} 
@@ -77,7 +77,7 @@ export default function RegisterPage() {
           </div>
 
           <div style={{ marginBottom: '15px', width: '100%' }}>
-            <label>Slaptažodis:</label>
+            <label>Password:</label>
             <input
               type="password"
               value={slaptazodis} 
@@ -87,7 +87,7 @@ export default function RegisterPage() {
           </div>
 
           {error && <div style={{ color: 'red' }}>{error}</div>}
-          <button type="submit">Registruotis</button>
+          <button type="submit">Register</button>
         </form>
       </div>
     </div>
