@@ -25,9 +25,14 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        // Store user data (consider using localStorage or context)
-        localStorage.setItem('user', JSON.stringify(data.data));
-        navigate('/auth'); // Redirect to auth page
+        if (data.status === '2fa_required') {
+            // Redirect to the separate AuthPage, passing the userId in state
+            navigate('/auth', { state: { userId: data.data.userId } });
+        } else {
+            // Fallback if 2FA is somehow disabled
+            localStorage.setItem('user', JSON.stringify(data.data));
+            navigate('/home'); // Go straight to home
+        }
       } else {
         setError(data.message || 'Login failed');
       }

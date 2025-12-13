@@ -1,21 +1,50 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 export default function AuthPage(){
     const [code, setCode] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
+
+    const userId = location.state?.userId;
+
+        useEffect(() => {
+        // If someone tries to go to /auth directly without logging in first, kick them back
+        if (!userId) {
+            navigate('/login');
+        }
+    }, [userId, navigate]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         setLoading(true);
 
-        // TODO:
-        // Authentication logic here
+        try {
+            const response = await fetch('/api/login/2fa', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application.json' },
+                body: JSON.stringify({
+                    userId: userId,
+                    code: code,
+                }),
+            });
 
-        navigate('/home'); // Redirect to home page after successful 2FA
+            const data = await response.json();
+
+            if (response.ok) {
+                localStorage.setItem('user', JSON.stringify(data.data));
+                navigate('/home'); // Redirect to home page after successful 2FA
+            } else {
+                setError(data.message || 'Invalid Code');
+            }
+        } catch (err) {
+            setError('Network error');
+        } finally {
+            setLoading(false);
+        }
     }
 
     return (
@@ -35,7 +64,9 @@ export default function AuthPage(){
                                 pattern="\d{6}"
                                 value={code}
                                 onChange={(e) => setCode(e.target.value)}
-                                required
+                                required            
+                                autoFocus
+                                placeholder="000000"
                             />
                         </div>
 

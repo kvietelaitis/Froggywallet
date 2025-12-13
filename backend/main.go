@@ -38,7 +38,10 @@ func main() {
 	api.Get("/users", controllers.GetUsers)
 	api.Post("/login", controllers.Login)
 	api.Post("/register", controllers.Register)
-
+	api.Post("/login/2fa", controllers.Login2FA)
+	api.Post("/2fa/generate", controllers.Generate2FA)
+	api.Post("/2fa/verify", controllers.Verify2FA)
+  
 	loans := api.Group("/loans")
 	loans.Get("/", controllers.GetLoans)
 	loans.Get("/upcoming", controllers.GetUpcomingPayments)
