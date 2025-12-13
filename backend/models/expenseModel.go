@@ -14,7 +14,8 @@ type Islaida struct {
 	Data           time.Time `gorm:"not null"`
 	Komentaras     string    // Comment
 	Pavadinimas    string    `gorm:"not null"` // Name
-	MokejimosBudas string    // Payment method
+	MokejimoBudas string    // Payment method
+	PasikartojimoTipas string    // Recurrence type
 
 	// Relationships
 	Kategorija *Kategorija `gorm:"foreignKey:KategorijaID"`
