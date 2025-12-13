@@ -22,7 +22,8 @@ type RegisterRequest struct {
 }
 
 type Verify2FARequest struct {
-	Code string `json:"code"`
+	UserID uint   `json:"userId"`
+	Code   string `json:"code"`
 }
 
 type Login2FARequest struct {
@@ -119,6 +120,20 @@ func Register(c *fiber.Ctx) error {
 		})
 	}
 
+	key, err := totp.Generate(totp.GenerateOpts{
+		Issuer:      "Froggywallet",
+		AccountName: user.ElPastas,
+	})
+
+	var qrUrl, secret string
+	if err == nil {
+		user.TwoFactorSecret = key.Secret()
+		initializers.DB.Save(&user)
+
+		qrUrl = key.URL()
+		secret = key.Secret()
+	}
+
 	return c.JSON(fiber.Map{
 		"status":  "success",
 		"message": "User registered successfully",
@@ -127,6 +142,8 @@ func Register(c *fiber.Ctx) error {
 			"email":   user.ElPastas,
 			"vardas":  user.Vardas,
 			"pavarde": user.Pavarde,
+			"qr_url":  qrUrl,
+			"secret":  secret,
 		},
 	})
 }
@@ -168,6 +185,13 @@ func Verify2FA(c *fiber.Ctx) error {
 	}
 
 	var user models.Narys
+
+	if err := initializers.DB.First(&user, body.UserID).Error; err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"status": "error",
+			"error":  "User not found",
+		})
+	}
 
 	valid := totp.Validate(body.Code, user.TwoFactorSecret)
 

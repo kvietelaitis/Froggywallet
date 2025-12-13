@@ -13,6 +13,7 @@ import IncomeRoutes from './pages/Income/IncomeRoutes'
 import BudgetRoutes from './pages/Budget/BudgetRoutes'
 import InvestmentsRoutes from './pages/Investments/InvestmentRoutes'
 import SettingsPage from './pages/SettingsPage'
+import Setup2FAPage from './pages/Setup2FAPage'
 
 const menuItems: MenuItem[] = [
     { title: 'Home', path: '/home' },
@@ -38,6 +39,7 @@ function AppContent(): JSX.Element {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/home" element={<HomePage />} />
             <Route path="/auth" element={<AuthPage />} />
+            <Route path="/setup-2fa" element={<Setup2FAPage/>}/>
             <Route path="/settings" element={<SettingsPage />} />
             
             {/* Income Routes */}

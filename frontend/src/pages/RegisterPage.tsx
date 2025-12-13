@@ -22,7 +22,13 @@ export default function RegisterPage() {
 
     const data = await res.json()
     if (res.ok) {
-      navigate('/')
+      navigate('/setup-2fa', {
+        state: {
+          userId: data.data.id,
+          qrUrl: data.data.qr_url,
+          secret: data.data.secret
+        }
+      });
     } else {
       setError(data.error || data.message || 'Registration failed')
     }
