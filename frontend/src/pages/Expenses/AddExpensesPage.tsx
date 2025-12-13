@@ -12,8 +12,7 @@ export default function AddExpensesPage() {
   return (
     <div className="auth-container">
       <div style={{ maxWidth: 420, margin: '40px auto', textAlign: 'center' }}>
-        <h1>Pridėti išlaidas</h1>
-        <p>Šiuo metu čia rodomas išlaidų pridėjimas.</p>
+        <h1>Add expenses</h1>
 
         <p style={{ textAlign: 'left' }}>Name of expenses</p>
         <input
@@ -21,26 +20,12 @@ export default function AddExpensesPage() {
           placeholder="Write the name of expenses"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          style={{
-            width: '100%',
-            padding: '10px',
-            borderRadius: '8px',
-            border: '1px solid #ccc',
-            fontSize: '16px'
-          }}
         />
 
         <p style={{ textAlign: 'left' }}>Payment type</p>
         <select
           value={paymentType}
           onChange={(e) => setPaymentType(e.target.value)}
-          style={{
-            width: '100%',
-            padding: '10px',
-            borderRadius: '8px',
-            border: '1px solid #ccc',
-            fontSize: '16px',
-          }}
         >
           <option value="">Choose payment type</option>
           <option value="cash">Cash</option>
@@ -54,13 +39,6 @@ export default function AddExpensesPage() {
           placeholder="Write the sum of expenses"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          style={{
-            width: '100%',
-            padding: '10px',
-            borderRadius: '8px',
-            border: '1px solid #ccc',
-            fontSize: '16px'
-          }}
         />
 
         <p style={{ textAlign: 'left' }}>Expenses date</p>
@@ -68,13 +46,6 @@ export default function AddExpensesPage() {
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          style={{
-            width: '100%',
-            padding: '10px',
-            borderRadius: '8px',
-            border: '1px solid #ccc',
-            fontSize: '16px'
-          }}
         />
 
         <p style={{ textAlign: 'left' }}>Comment</p>
@@ -83,14 +54,22 @@ export default function AddExpensesPage() {
           placeholder="Write a comment"
           value={comment}
           onChange={(e) => setComment(e.target.value)}
+        />
+
+        <button
+          onClick={() => {
+            console.log('Amount:', amount);
+            console.log('Date:', date);
+            console.log('Payment type:', paymentType);
+          }}
           style={{
             width: '100%',
-            padding: '10px',
-            borderRadius: '8px',
-            border: '1px solid #ccc',
-            fontSize: '16px'
+            marginTop: '25px',
+            cursor: 'pointer'
           }}
-        />
+        >
+          Add expenses
+        </button>
 
       </div>
     </div>
