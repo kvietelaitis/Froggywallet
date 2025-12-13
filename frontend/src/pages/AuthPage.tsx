@@ -22,10 +22,29 @@ export default function AuthPage(){
         setError('');
         setLoading(true);
 
-        // TODO:
-        // Authentication logic here
+        try {
+            const response = await fetch('/api/login/2fa', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application.json' },
+                body: JSON.stringify({
+                    userId: userId,
+                    code: code,
+                }),
+            });
 
-        navigate('/home'); // Redirect to home page after successful 2FA
+            const data = await response.json();
+
+            if (response.ok) {
+                localStorage.setItem('user', JSON.stringify(data.data));
+                navigate('/home'); // Redirect to home page after successful 2FA
+            } else {
+                setError(data.message || 'Invalid Code');
+            }
+        } catch (err) {
+            setError('Network error');
+        } finally {
+            setLoading(false);
+        }
     }
 
     return (
@@ -45,7 +64,9 @@ export default function AuthPage(){
                                 pattern="\d{6}"
                                 value={code}
                                 onChange={(e) => setCode(e.target.value)}
-                                required
+                                required            
+                                autoFocus
+                                placeholder="000000"
                             />
                         </div>
 
