@@ -41,7 +41,7 @@ func main() {
 	api.Post("/login/2fa", controllers.Login2FA)
 	api.Post("/2fa/generate", controllers.Generate2FA)
 	api.Post("/2fa/verify", controllers.Verify2FA)
-  
+
 	loans := api.Group("/loans")
 	loans.Get("/", controllers.GetLoans)
 	loans.Get("/upcoming", controllers.GetUpcomingPayments)
@@ -59,6 +59,9 @@ func main() {
 	debtors.Post("/", controllers.CreateDebtor)
 	debtors.Put("/:id", controllers.UpdateDebtor)
 	debtors.Delete("/:id", controllers.DeleteDebtor)
+
+	incomes := api.Group("/incomes")
+	incomes.Post("/create-income", controllers.CreateIncome)
 
 	// // setup routes
 	// frontend_routes := []string{

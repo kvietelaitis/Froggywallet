@@ -1,10 +1,47 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
 function IncomeCreationPage() {
     const navigate = useNavigate();
+    const [name, setName] = useState('');
+    const [amount, setAmount] = useState<number | ''>('');
+    const [date, setDate] = useState('');
+    const [currency, setCurrency] = useState('USD');
 
-    const handleSubmit = (event: React.FormEvent) => {
+    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
+
+    const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
+        setError(null);
+        setLoading(true);
+
+        try {
+            const response = await fetch(`${API_URL}/incomes/create-income`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name,
+                    amount,
+                    date,
+                    currency,
+                }),
+            });
+
+            if (response.ok) {
+                navigate(-1);
+            } else {
+                setError('Failed to create income.');
+            }
+        } catch (err) {
+            setError('An error occurred while creating income.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -12,6 +49,22 @@ function IncomeCreationPage() {
             <div>
                 <h1>Income Creation Page</h1>
             </div>
+
+            {error && (
+                <div
+                    role="alert"
+                    style={{
+                        marginBottom: 12,
+                        padding: 10,
+                        borderRadius: 6,
+                        background: "#ffe6e6",
+                        color: "#b00020",
+                        border: "1px solid #f5c2c2",
+                    }}
+                >
+                    {error}
+                </div>
+            )}
 
             <form onSubmit={handleSubmit}>
                 <div style={{ marginBottom: 10 }}>
@@ -22,6 +75,7 @@ function IncomeCreationPage() {
                         type="text"
                         required
                         placeholder="e.g. Salary"
+                        onChange={(e) => setName(e.target.value)}
                     />
                 </div>
 
@@ -35,6 +89,7 @@ function IncomeCreationPage() {
                         step="0.01"
                         required
                         placeholder="0.00"
+                        onChange={(e) => setAmount(parseFloat(e.target.value))}
                     />
                 </div>
 
@@ -45,6 +100,7 @@ function IncomeCreationPage() {
                     <input
                         type="date"
                         required
+                        onChange={(e) => setDate(e.target.value)}
                     />
                 </div>
 
@@ -56,6 +112,7 @@ function IncomeCreationPage() {
                         type="text"
                         required
                         placeholder="USD"
+                        onChange={(e) => setCurrency(e.target.value)}
                     />
                 </div>
 

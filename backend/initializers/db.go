@@ -29,7 +29,7 @@ func SyncDatabase() {
 		// Financial entities
 		&models.Investicija{},
 		&models.RinkosDuomenys{},
-		&models.Pajamos{},
+		&models.Pajama{},
 		&models.Islaida{},
 		&models.Kategorija{},
 
