@@ -72,6 +72,10 @@ func main() {
 	expenses.Post("/", controllers.CreateExpense)
 	expenses.Put("/:id", controllers.UpdateExpense)
 	expenses.Delete("/:id", controllers.DeleteExpense)
+
+	categories := api.Group("/categories")
+	categories.Get("/", controllers.GetCategories)
+	categories.Post("/", controllers.CreateCategory)
 	// // setup routes
 	// frontend_routes := []string{
 	// 	"/",
