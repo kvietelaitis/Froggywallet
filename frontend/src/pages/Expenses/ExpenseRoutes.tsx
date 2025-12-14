@@ -14,7 +14,7 @@ function ExpensesRoutes() {
       <Route path="addexpenses" element={<AddExpensesPage />} />
       <Route path="addperiodicalexpenses" element={<AddPeriodicalExpensesPage />} />
       <Route path="compareexpenses" element={<CompareExpensesPage />} />
-      <Route path="editexpenses/:id" element={<EditExpensesPage />} />
+      <Route path="editexpenses" element={<EditExpensesPage />} />
       <Route path="groupexpenses" element={<GroupExpensesPage />} />
       <Route path="deleteexpenses" element={<DeleteExpensesPage />} />
       

@@ -7,6 +7,7 @@ import (
 // Kategorija (Category for expenses)
 type Kategorija struct {
 	gorm.Model
+	ID          uint   `gorm:"primaryKey"`
 	Pavadinimas string `gorm:"not null"` // Name
 
 	// Relationships
