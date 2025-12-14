@@ -74,6 +74,8 @@ func main() {
 
 	groups := api.Group("/groups", middleware.RequireAuth)
 	groups.Get("/:id", controllers.GetUserGroups)
+	groups.Get("/info/:id", controllers.GetGroup)
+	groups.Put("/change-info/:id", controllers.UpdateGroup)
 
 	user := api.Group("/user", middleware.RequireAuth)
 	user.Put("/change-info/:id", controllers.ChangeUserInfo)

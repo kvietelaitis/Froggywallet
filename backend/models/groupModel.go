@@ -15,7 +15,7 @@ type Grupe struct {
 	PiktogramosNuoroda string    // Icon/Picture URL
 
 	// Relationships
-	Nariai      []Narys       `gorm:"many2many:grupe_nariai;"`
+	Nariai      []Narys       `gorm:"foreignKey:GrupeID"`
 	Pakvietimai []Pakvietimas `gorm:"foreignKey:GrupeID"`
 	Biudzetai   []Biudzetas   `gorm:"foreignKey:GrupeID"`
 }

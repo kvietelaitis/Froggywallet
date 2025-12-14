@@ -150,40 +150,28 @@ func Register(c *fiber.Ctx) error {
 		})
 	}
 
-	group := models.Grupe{
-		Pavadinimas: "Personal",
-		Aprasymas:   "A personal started group for the user",
-	}
-
+	group := models.Grupe{Pavadinimas: "Personal - " + user.VartotojoVardas}
 	if err := tx.Create(&group).Error; err != nil {
 		tx.Rollback()
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Nepavyko sukurti grupes",
+			"error": "Nepavyko sukurti grupės",
+		})
+	}
+	role := models.Role{RolesPavadinimas: "Administratorius"}
+	if err := tx.FirstOrCreate(&role, models.Role{RolesPavadinimas: "Administratorius"}).Error; err != nil {
+		tx.Rollback()
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Nepavyko sukurti rolės",
 		})
 	}
 
-	if err := tx.Model(&group).Association("Nariai").Append(&user); err != nil {
+	// set FKs on user
+	user.GrupeID = &group.ID
+	user.RoleID = &role.ID
+	if err := tx.Save(&user).Error; err != nil {
 		tx.Rollback()
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Nepavyko pridėti vartotojo prie grupės",
-		})
-	}
-
-	role := models.Role{
-		RolesPavadinimas: "Administratorius",
-	}
-
-	if err := tx.Create(&role).Error; err != nil {
-		tx.Rollback()
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Nepavyko sukurti roles",
-		})
-	}
-
-	if err := tx.Model(&role).Association("Nariai").Append(&user); err != nil {
-		tx.Rollback()
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Nepavyko pridėti vartotojo prie grupės",
+			"error": "Nepavyko užbaigti registracijos",
 		})
 	}
 

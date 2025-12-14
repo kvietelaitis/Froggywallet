@@ -10,5 +10,5 @@ type Role struct {
 	RolesPavadinimas string `gorm:"unique;not null"` // Role name
 
 	// Relationships
-	Nariai []Narys `gorm:"many2many:narys_roles;"`
+	Nariai []Narys `gorm:"foreignKey:RoleID"`
 }
