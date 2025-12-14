@@ -16,7 +16,6 @@ import SettingsPage from './pages/SettingsPage'
 import Setup2FAPage from './pages/Setup2FAPage'
 import ProtectedRoute from './_components/ProtectedRoutes'
 
-
 const menuItems: MenuItem[] = [
     { title: 'Home', path: '/home' },
     { title: 'Income', path: '/income' },
