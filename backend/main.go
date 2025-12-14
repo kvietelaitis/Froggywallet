@@ -68,7 +68,7 @@ func main() {
 
 	incomes := api.Group("/incomes", middleware.RequireAuth)
 	incomes.Post("/create-income", controllers.CreateIncome)
-	incomes.Get("/", controllers.GetIncomes)
+	incomes.Get("/user/:id", controllers.GetIncomes) // Changed from /:id to /user/:id
 	incomes.Get("/:id", controllers.GetIncome)
 	incomes.Put("/:id", controllers.UpdateIncome)
 
