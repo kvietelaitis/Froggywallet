@@ -22,9 +22,10 @@ func ConnectToDatabase() {
 func SyncDatabase() {
 	DB.AutoMigrate(
 		// Core entities
-		&models.Narys{},
-		&models.Sektorius{},
 		&models.Role{},
+		&models.Narys{},
+		&models.Grupe{},
+		&models.Sektorius{},
 
 		// Financial entities
 		&models.Investicija{},
@@ -42,7 +43,6 @@ func SyncDatabase() {
 		&models.Skolininkas{},
 
 		// Groups and invitations
-		&models.Grupe{},
 		&models.Pakvietimas{},
 	)
 }

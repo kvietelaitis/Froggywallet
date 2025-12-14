@@ -17,14 +17,14 @@ type Pakvietimas struct {
 	ID                 uint   `gorm:"primaryKey"`
 	SektoriusID        *uint  // Optional sector ID
 	GrupeID            *uint  // Optional group ID
-	PakvietePasiunteID uint   `gorm:"not null"`                             // Inviter (sender) ID
-	PakvietePriimeID   uint   `gorm:"not null"`                             // Invitee (receiver) ID
+	PakvietePasiunteID uint   `gorm:"not null"` // Inviter (sender) ID
+	PakvietePriimeID   *uint  // Invitee (receiver) ID
+	Token              string `gorm:"not null`
 	ElPastas           string `gorm:"not null"`                             // Email
 	Busena             Busena `gorm:"type:varchar(50);default:'Laukiamas'"` // Status
 
 	// Relationships
-	Sektorius     *Sektorius `gorm:"foreignKey:SektoriusID"`
-	Grupe         *Grupe     `gorm:"foreignKey:GrupeID"`
-	PasiunteNarys Narys      `gorm:"foreignKey:PakvietePasiunteID"`
-	PriimeNarys   Narys      `gorm:"foreignKey:PakvietePriimeID"`
+	Grupe         *Grupe `gorm:"foreignKey:GrupeID"`
+	PasiunteNarys Narys  `gorm:"foreignKey:PakvietePasiunteID"`
+	PriimeNarys   Narys  `gorm:"foreignKey:PakvietePriimeID"`
 }
