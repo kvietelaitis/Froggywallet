@@ -297,23 +297,6 @@ export default function ExpensesPage() {
     setModalError(null);
   };
 
-  const handleDeleteCategory = async (id: number) => {
-  if (!window.confirm("Are you sure you want to delete this category?")) return;
-
-  try {
-    const res = await fetch(`${API_URL}/categories/${id}`, { method: "DELETE" });
-    const data = await res.json();
-    if (data.status === "success") {
-      fetchCategories(); // atnaujina sąrašą po ištrynimo
-      if (categoryId === id) setCategoryId(""); // nuvalo pasirinkimą, jei buvo pasirinkta ši kategorija
-    } else {
-      alert(data.error || "Failed to delete category");
-    }
-  } catch {
-    alert("Failed to connect to server");
-  }
-};
-
   if (loading) return <div className="auth-container"><p>Loading...</p></div>;
 
   return (
