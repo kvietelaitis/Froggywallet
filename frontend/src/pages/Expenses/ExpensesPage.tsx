@@ -530,7 +530,7 @@ export default function ExpensesPage() {
         {/* --- Delete Modal --- */}
         {isDeleteModalOpen && (
           <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 4000 }}>
-            <div style={{ background: "black", padding: 20, borderRadius: 8, width: 300 }}>
+            <div style={{ background: "var(--bg-card)", padding: 20, borderRadius: 8, width: 300 }}>
               <h3>Confirm Delete</h3>
               <p>Are you sure you want to delete this expense?</p>
               <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
