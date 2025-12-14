@@ -1,10 +1,6 @@
 package controllers
 
 import (
-	"os"
-	"time"
-
-	"github.com/KvietelaitisMartynas/froggywallet/backend/helpers"
 	"github.com/KvietelaitisMartynas/froggywallet/backend/initializers"
 	"github.com/KvietelaitisMartynas/froggywallet/backend/models"
 	"github.com/gofiber/fiber/v2"
@@ -18,19 +14,11 @@ type LoginRequest struct {
 }
 
 type RegisterRequest struct {
-	FirstName string `json:"vardas"`
-	LastName  string `json:"pavarde"`
-	Email     string `json:"el_pastas"`
-	Password  string `json:"slaptazodis"`
-	Username  string `json:"vartotojo_vardas"`
-}
-
-type UserDTO struct {
-	ID        uint   `json:"id"`
-	Email     string `json:"el_pastas"`
-	FirstName string `json:"vardas"`
-	LastName  string `json:"pavarde"`
-	Username  string `json:"vartotojo_vardas"`
+	Vardas          string `json:"vardas"`
+	Pavarde         string `json:"pavarde"`
+	ElPastas        string `json:"el_pastas"`
+	Slaptazodis     string `json:"slaptazodis"`
+	VartotojoVardas string `json:"vartotojo_vardas"`
 }
 
 type Verify2FARequest struct {
@@ -43,18 +31,9 @@ type Login2FARequest struct {
 	Code   string `json:"code"`
 }
 
-func toDTO(u models.Narys) UserDTO {
-	return UserDTO{
-		ID:        u.ID,
-		Email:     u.ElPastas,
-		FirstName: u.Vardas,
-		LastName:  u.Pavarde,
-		Username:  u.VartotojoVardas,
-	}
-}
-
 func Login(c *fiber.Ctx) error {
 	var body LoginRequest
+
 	if err := c.BodyParser(&body); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Cannot parse JSON",
@@ -62,12 +41,14 @@ func Login(c *fiber.Ctx) error {
 	}
 
 	var user models.Narys
+
 	if err := initializers.DB.Where("el_pastas = ?", body.Email).First(&user).Error; err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "Invalid email or password",
 		})
 	}
 
+	// Compare password (you'll need to hash passwords when creating users)
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Slaptazodis), []byte(body.Password)); err != nil {
 		return c.Status(401).JSON(fiber.Map{
 			"status":  "error",
@@ -75,27 +56,24 @@ func Login(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.JSON(fiber.Map{
-		"status": "2fa_required",
-		"data": fiber.Map{
-			"userId": user.ID,
-		},
-	})
-}
-
-func Logout(c *fiber.Ctx) error {
-	c.Cookie(&fiber.Cookie{
-		Name:     "access_token",
-		Value:    "",
-		HTTPOnly: true,
-		Secure:   os.Getenv("ENV") == "production",
-		SameSite: "Lax",
-		Expires:  time.Now().Add(-1 * time.Hour),
-	})
+	if user.TwoFactorEnabled {
+		return c.JSON(fiber.Map{
+			"status": "2fa_required",
+			"data": fiber.Map{
+				"userId": user.ID,
+			},
+		})
+	}
 
 	return c.JSON(fiber.Map{
 		"status":  "success",
-		"message": "Logged Out",
+		"message": "Login successful",
+		"data": fiber.Map{
+			"id":      user.ID,
+			"email":   user.ElPastas,
+			"vardas":  user.Vardas,
+			"pavarde": user.Pavarde,
+		},
 	})
 }
 
@@ -109,19 +87,19 @@ func Register(c *fiber.Ctx) error {
 	}
 
 	var existing models.Narys
-	if err := initializers.DB.Where("el_pastas = ?", body.Email).First(&existing).Error; err == nil {
+	if err := initializers.DB.Where("el_pastas = ?", body.ElPastas).First(&existing).Error; err == nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "El. paštas jau naudojamas.",
 		})
 	}
 
-	if err := initializers.DB.Where("vartotojo_vardas = ?", body.Username).First(&existing).Error; err == nil {
+	if err := initializers.DB.Where("vartotojo_vardas = ?", body.VartotojoVardas).First(&existing).Error; err == nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Vartotojo vardas jau naudojamas.",
 		})
 	}
 
-	hashed, err := bcrypt.GenerateFromPassword([]byte(body.Password), 10)
+	hashed, err := bcrypt.GenerateFromPassword([]byte(body.Slaptazodis), 10)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Nepavyko užregistruoti vartotojo",
@@ -136,11 +114,11 @@ func Register(c *fiber.Ctx) error {
 	}
 
 	user := models.Narys{
-		Vardas:          body.FirstName,
-		Pavarde:         body.LastName,
-		ElPastas:        body.Email,
+		Vardas:          body.Vardas,
+		Pavarde:         body.Pavarde,
+		ElPastas:        body.ElPastas,
 		Slaptazodis:     string(hashed),
-		VartotojoVardas: body.Username,
+		VartotojoVardas: body.VartotojoVardas,
 	}
 
 	if err := tx.Create(&user).Error; err != nil {
@@ -324,40 +302,14 @@ func Login2FA(c *fiber.Ctx) error {
 		})
 	}
 
-	token, err := helpers.CreateToken(user.ID)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Could not create token"})
-	}
-
-	c.Cookie(&fiber.Cookie{
-		Name:     "access_token",
-		Value:    token,
-		HTTPOnly: true,
-		Secure:   os.Getenv("ENV") == "production",
-		SameSite: "Lax",
-		Expires:  time.Now().Add(24 * time.Hour),
-	})
-
 	return c.JSON(fiber.Map{
 		"status":  "success",
 		"message": "Login successful",
-		"data":    toDTO(user),
-	})
-}
-
-func Me(c *fiber.Ctx) error {
-	userID := c.Locals("userID")
-	if userID == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
-	}
-
-	var user models.Narys
-	if err := initializers.DB.First(&user, userID).Error; err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "user not found"})
-	}
-
-	return c.JSON(fiber.Map{
-		"status": "success",
-		"data":   toDTO(user),
+		"data": fiber.Map{
+			"id":      user.ID,
+			"email":   user.ElPastas,
+			"vardas":  user.Vardas,
+			"pavarde": user.Pavarde,
+		},
 	})
 }
