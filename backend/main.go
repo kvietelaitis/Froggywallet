@@ -66,6 +66,12 @@ func main() {
 	incomes.Get("/:id", controllers.GetIncome)
 	incomes.Put("/:id", controllers.UpdateIncome)
 
+	expenses := api.Group("/expenses")
+	expenses.Get("/", controllers.GetExpenses)
+	expenses.Get("/:id", controllers.GetExpense)
+	expenses.Post("/", controllers.CreateExpense)
+	expenses.Put("/:id", controllers.UpdateExpense)
+	expenses.Delete("/:id", controllers.DeleteExpense)
 	// // setup routes
 	// frontend_routes := []string{
 	// 	"/",

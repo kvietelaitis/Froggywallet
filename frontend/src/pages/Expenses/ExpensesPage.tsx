@@ -1,34 +1,110 @@
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+
+interface Expense {
+  ID: number;
+  Pavadinimas: string;
+  Suma: number;
+  Data: string;
+  MokejimoBudas: string;
+  Komentaras?: string;
+  PasikartojimoTipas?: string;
+  Kategorija?: {
+    Pavadinimas: string;
+  };
+}
 
 export default function ExpensesPage() {
   const navigate = useNavigate();
 
-  const fakeExpenses = [
-    {
-      id: 1,
-      name: "Groceries",
-      amount: 45.99,
-      date: "2025-09-10",
-      paymentType: "Card",
-      comment : "Weekly shopping",
-      category: "Food",
-    },
-    {
-      id: 2,
-      name: "Electricity Bill",
-      amount: 60.5,
-      date: "2025-09-05",
-      paymentType: "Cash",
-      comment : "Monthly payment",
-      reccurence: "Monthly",
-      category: "Utilities",
-    },
-  ];
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchExpenses();
+  }, []);
+
+  /* =======================
+     FETCH EXPENSES
+  ======================= */
+  const fetchExpenses = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await fetch(`${API_URL}/expenses`);
+      const data = await response.json();
+
+      if (data.status === "success") {
+        setExpenses(data.data || []);
+      } else {
+        setError(data.error || "Failed to fetch expenses");
+      }
+    } catch {
+      setError("Failed to connect to server");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* =======================
+     DELETE EXPENSE
+  ======================= */
+  const deleteExpense = async (id: number) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this expense?"
+    );
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(`${API_URL}/expenses/${id}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (data.status === "success") {
+        setExpenses((prev) => prev.filter((e) => e.ID !== id));
+      } else {
+        alert(data.error || "Failed to delete expense");
+      }
+    } catch {
+      alert("Failed to connect to server");
+    }
+  };
+
+  /* =======================
+     RENDER
+  ======================= */
+  if (loading) {
+    return (
+      <div className="auth-container">
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="auth-container">
-      <div style={{ margin: "40px auto", textAlign: "center" }}>
+      <div style={{ margin: "40px auto", maxWidth: 1000, textAlign: "center" }}>
         <h1>Expenses</h1>
+
+        {error && (
+          <div
+            style={{
+              background: "#f8d7da",
+              color: "#721c24",
+              padding: "12px",
+              borderRadius: "8px",
+              marginBottom: "16px",
+            }}
+          >
+            {error}
+          </div>
+        )}
 
         <table
           style={{
@@ -43,91 +119,84 @@ export default function ExpensesPage() {
               <th>Name</th>
               <th>Amount</th>
               <th>Date</th>
-              <th>Payment</th>
+              <th>Payment Type</th>
               <th>Category</th>
               <th>Comment</th>
-              <th>Reccurence</th>
+              <th>Recurrence</th>
+              <th></th>
+              <th></th>
             </tr>
           </thead>
 
           <tbody>
-            {fakeExpenses.map((exp) => (
-              <tr key={exp.id}>
-                <td>{exp.name}</td>
-                <td>{exp.amount} €</td>
-                <td>{exp.date}</td>
-                <td>{exp.paymentType}</td>
-                <td>{exp.category}</td>
-                <td>{exp.comment}</td>
-                <td>{exp.reccurence}</td>
-                <td>
-                  <span
-                    onClick={() => navigate("/expenses/editexpenses")}
-                    style={{ cursor: "pointer", fontSize: "18px" }}
-                    title="Edit"
-                  >
-                    ✏️
-                  </span>
-                </td>
-                <td>
-                  <span
-                    onClick={() => navigate("/expenses/deleteexpenses")}
-                    style={{ cursor: "pointer", fontSize: "18px" }}
-                    title="Delete"
-                  >
-                    ❌
-                  </span>
+            {expenses.length === 0 ? (
+              <tr>
+                <td colSpan={9} style={{ textAlign: "center", padding: "20px" }}>
+                  No expenses found
                 </td>
               </tr>
-            ))}
+            ) : (
+              expenses.map((exp) => (
+                <tr key={exp.ID}>
+                  <td>{exp.Pavadinimas}</td>
+                  <td>{exp.Suma.toFixed(2)} €</td>
+                  <td>{new Date(exp.Data).toLocaleDateString()}</td>
+                  <td>{exp.MokejimoBudas || "-"}</td>
+                  <td>{exp.Kategorija?.Pavadinimas || "-"}</td>
+                  <td>{exp.Komentaras || "-"}</td>
+                  <td>{exp.PasikartojimoTipas || "-"}</td>
+
+                  <td>
+                    <span
+                      onClick={() =>
+                        navigate(`/expenses/editexpenses/${exp.ID}`)
+                      }
+                      style={{ cursor: "pointer", fontSize: "18px" }}
+                      title="Edit"
+                    >
+                      ✏️
+                    </span>
+                  </td>
+
+                  <td>
+                    <span
+                      onClick={() => deleteExpense(exp.ID)}
+                      style={{ cursor: "pointer", fontSize: "18px" }}
+                      title="Delete"
+                    >
+                      ❌
+                    </span>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
 
-        <div style={{ alignContent: "center", width: "100%" }}>
-
+        <div style={{ width: "100%" }}>
           <button
-            style={{
-              margin: "10px",
-              height: "70px",
-              width: "400px",
-              maxWidth: "400px",
-            }}
+            style={{ margin: "10px", height: "70px", width: "400px" }}
             onClick={() => navigate("/expenses/addexpenses")}
           >
             Add
           </button>
 
           <button
-            style={{
-              margin: "10px",
-              height: "70px",
-              width: "400px",
-              maxWidth: "400px",
-            }}
+            style={{ margin: "10px", height: "70px", width: "400px" }}
             onClick={() => navigate("/expenses/addperiodicalexpenses")}
           >
-            Add reccuring expenses
+            Add recurring expenses
           </button>
 
           <button
-            style={{
-              margin: "10px",
-              height: "70px",
-              width: "400px",
-              maxWidth: "400px",
-            }}
+            style={{ margin: "10px", height: "70px", width: "400px" }}
             onClick={() => navigate("/expenses/compareexpenses")}
           >
             Compare
           </button>
 
           <button
-            style={{
-              margin: "10px",
-              height: "70px",
-              width: "400px",
-              maxWidth: "400px",
-            }}
+            style={{ margin: "10px", height: "70px", width: "400px" }}
             onClick={() => navigate("/expenses/groupexpenses")}
           >
             Group
