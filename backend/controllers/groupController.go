@@ -53,13 +53,20 @@ func GetUserGroups(c *fiber.Ctx) error {
 	var user models.Narys
 
 	// preload group and its members, then return []Grupe
-	if err := initializers.DB.Preload("Grupe").Preload("Grupe.Nariai").First(&user, id).Error; err != nil {
+	if err := initializers.DB.Preload("Grupe").Preload("Grupe.Nariai").Preload("Role").First(&user, id).Error; err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "user not found"})
 	}
+
+	currentUserRole := ""
+	if user.Role.RolesPavadinimas != "" {
+		currentUserRole = user.Role.RolesPavadinimas
+	}
+
 	if user.GrupeID == nil {
 		return c.JSON(fiber.Map{"status": "success", "data": []models.Grupe{}})
 	}
-	return c.JSON(fiber.Map{"status": "success", "data": []models.Grupe{user.Grupe}})
+
+	return c.JSON(fiber.Map{"status": "success", "data": []models.Grupe{user.Grupe}, "currentUserRole": currentUserRole})
 }
 
 func GetGroup(c *fiber.Ctx) error {
@@ -69,8 +76,23 @@ func GetGroup(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid id"})
 	}
 
+	userLoc := c.Locals("userID")
+	var currentUserRole string
+	if userLoc != nil {
+		userID := userLoc.(uint)
+		var user models.Narys
+		if err := initializers.DB.Preload("Role").First(&user, userID).Error; err == nil {
+			currentUserRole = user.Role.RolesPavadinimas
+		}
+	}
+
+	currentUserId := uint(0)
+	if userLoc != nil {
+		currentUserId = userLoc.(uint)
+	}
+
 	var group models.Grupe
-	if err := initializers.DB.Preload("Nariai").First(&group, uint(id64)).Error; err != nil {
+	if err := initializers.DB.Preload("Nariai.Role").First(&group, uint(id64)).Error; err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "group not found"})
 	}
 
@@ -81,14 +103,17 @@ func GetGroup(c *fiber.Ctx) error {
 			"name":     m.Vardas,
 			"username": m.VartotojoVardas,
 			"email":    m.ElPastas,
+			"role":     m.Role.RolesPavadinimas,
 		})
 	}
 
 	dto := fiber.Map{
-		"id":          group.ID,
-		"name":        group.Pavadinimas,
-		"description": group.Aprasymas,
-		"members":     members,
+		"id":              group.ID,
+		"name":            group.Pavadinimas,
+		"description":     group.Aprasymas,
+		"members":         members,
+		"currentUserRole": currentUserRole,
+		"currentUserId":   currentUserId,
 	}
 
 	return c.JSON(fiber.Map{"status": "success", "data": dto})
@@ -116,6 +141,10 @@ func UpdateGroup(c *fiber.Ctx) error {
 	var user models.Narys
 	if err := initializers.DB.Preload("Role").First(&user, userID).Error; err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "user not found"})
+	}
+
+	if user.Role.RolesPavadinimas != "Administratorius" && user.Role.RolesPavadinimas != "Admin" {
+		return c.Status(403).JSON(fiber.Map{"error": "Admin required"})
 	}
 
 	// require user belongs to the group (or extend with role check if desired)
@@ -202,7 +231,7 @@ func CreateInvite(c *fiber.Ctx) error {
 		return c.Status(403).JSON(fiber.Map{"error": "Not a member"})
 	}
 
-	if sender.Role.RolesPavadinimas != "Administratorius" {
+	if sender.Role.RolesPavadinimas != "Administratorius" && sender.Role.RolesPavadinimas != "Admin" {
 		return c.Status(403).JSON(fiber.Map{"error": "Admin required"})
 	}
 
@@ -247,4 +276,108 @@ func CreateInvite(c *fiber.Ctx) error {
 			"email": invite.ElPastas,
 		},
 	})
+}
+
+type UpdateMemberRoleRequest struct {
+	RoleName string `json:"role"`
+}
+
+func UpdateMemberRole(c *fiber.Ctx) error {
+	groupIDp, _ := strconv.ParseUint(c.Params("groupId"), 10, 64)
+	memberIDp, _ := strconv.ParseUint(c.Params("memberId"), 10, 64)
+	groupID, memberID := uint(groupIDp), uint(memberIDp)
+
+	// auth
+	uidLoc := c.Locals("userID")
+	if uidLoc == nil {
+		return c.Status(401).JSON(fiber.Map{"error": "unauthorized"})
+	}
+	requesterID := uidLoc.(uint)
+
+	// verify requester is admin of this group
+	var requester models.Narys
+	if err := initializers.DB.Preload("Role").First(&requester, requesterID).Error; err != nil {
+		return c.Status(401).JSON(fiber.Map{"error": "user not found"})
+	}
+	if requester.GrupeID == nil || *requester.GrupeID != groupID {
+		return c.Status(403).JSON(fiber.Map{"error": "not a member"})
+	}
+	if requester.Role.RolesPavadinimas != "Admin" && requester.Role.RolesPavadinimas != "Administratorius" {
+		return c.Status(403).JSON(fiber.Map{"error": "admin required"})
+	}
+
+	var body UpdateMemberRoleRequest
+	if err := c.BodyParser(&body); err != nil || body.RoleName == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "role required"})
+	}
+
+	// find target member
+	var member models.Narys
+	if err := initializers.DB.First(&member, memberID).Error; err != nil {
+		return c.Status(404).JSON(fiber.Map{"error": "member not found"})
+	}
+	if member.GrupeID == nil || *member.GrupeID != groupID {
+		return c.Status(400).JSON(fiber.Map{"error": "user not in this group"})
+	}
+
+	// find or create role
+	var role models.Role
+	if err := initializers.DB.FirstOrCreate(&role, models.Role{RolesPavadinimas: body.RoleName}).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "failed to get role"})
+	}
+
+	member.RoleID = &role.ID
+	if err := initializers.DB.Save(&member).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "failed to update member"})
+	}
+
+	return c.JSON(fiber.Map{"status": "success", "message": "role updated"})
+}
+
+func RemoveMember(c *fiber.Ctx) error {
+	groupIDp, _ := strconv.ParseUint(c.Params("groupId"), 10, 64)
+	memberIDp, _ := strconv.ParseUint(c.Params("memberId"), 10, 64)
+	groupID, memberID := uint(groupIDp), uint(memberIDp)
+
+	// auth
+	uidLoc := c.Locals("userID")
+	if uidLoc == nil {
+		return c.Status(401).JSON(fiber.Map{"error": "unauthorized"})
+	}
+	requesterID := uidLoc.(uint)
+
+	// verify requester is admin
+	var requester models.Narys
+	if err := initializers.DB.Preload("Role").First(&requester, requesterID).Error; err != nil {
+		return c.Status(401).JSON(fiber.Map{"error": "user not found"})
+	}
+	if requester.GrupeID == nil || *requester.GrupeID != groupID {
+		return c.Status(403).JSON(fiber.Map{"error": "not a member"})
+	}
+	if requester.Role.RolesPavadinimas != "Admin" && requester.Role.RolesPavadinimas != "Administratorius" {
+		return c.Status(403).JSON(fiber.Map{"error": "admin required"})
+	}
+
+	// prevent self-removal if only admin (optional safeguard)
+	if memberID == requesterID {
+		return c.Status(400).JSON(fiber.Map{"error": "cannot remove yourself"})
+	}
+
+	// find target
+	var member models.Narys
+	if err := initializers.DB.First(&member, memberID).Error; err != nil {
+		return c.Status(404).JSON(fiber.Map{"error": "member not found"})
+	}
+	if member.GrupeID == nil || *member.GrupeID != groupID {
+		return c.Status(400).JSON(fiber.Map{"error": "user not in this group"})
+	}
+
+	// remove from group (set GrupeID to nil)
+	member.GrupeID = nil
+	member.RoleID = nil
+	if err := initializers.DB.Save(&member).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "failed to remove member"})
+	}
+
+	return c.JSON(fiber.Map{"status": "success", "message": "member removed"})
 }

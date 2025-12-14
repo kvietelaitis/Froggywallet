@@ -16,6 +16,7 @@ export default function GroupsPage(){
     const [loading, setLoading] = useState(true);
     const [groupsLoading, setGroupsLoading] = useState(false);
     const [showInvite, setShowInvite] = useState(false);
+    const [currentUserRole, setCurrentUserRole] = useState<string>("");
     const navigate = useNavigate();
 
     const [openGroupInfo, setOpenGroup] = useState(false);
@@ -68,6 +69,7 @@ export default function GroupsPage(){
             ),
             }));
             setGroups(mapped);
+            setCurrentUserRole(json.currentUserRole ?? '');
            }
         } catch (err) {
             setError("Network error");
@@ -102,7 +104,9 @@ export default function GroupsPage(){
                     </div>
                     <div style={{ marginLeft: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <button onClick={() => setOpenGroup(true)} style={{ padding: '6px 10px' }}>Open</button>
-                    <button onClick={() => setShowInvite(true)} style={{ padding: '6px 10px' }}>Invite Member</button>
+                    {(currentUserRole === "Admin" || currentUserRole === "Administratorius") && (
+                        <button onClick={() => setShowInvite(true)} style={{ padding: '6px 10px' }}>Invite Member</button>
+                    )}
                     </div>
 
                     <InviteMemberModal
