@@ -44,7 +44,7 @@ func main() {
 	api.Post("/login/2fa", controllers.Login2FA)
 	api.Post("/2fa/generate", controllers.Generate2FA)
 	api.Post("/2fa/verify", controllers.Verify2FA)
-	api.Post("/logout")
+	api.Post("/logout", controllers.Logout)
 
 	api.Get("/me", middleware.RequireAuth, controllers.Me)
 
@@ -71,6 +71,9 @@ func main() {
 	incomes.Get("/", controllers.GetIncomes)
 	incomes.Get("/:id", controllers.GetIncome)
 	incomes.Put("/:id", controllers.UpdateIncome)
+
+	user := api.Group("/user", middleware.RequireAuth)
+	user.Put("/:id", controllers.ChangeUserInfo)
 
 	// // setup routes
 	// frontend_routes := []string{

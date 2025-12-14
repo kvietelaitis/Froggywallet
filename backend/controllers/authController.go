@@ -27,9 +27,10 @@ type RegisterRequest struct {
 
 type UserDTO struct {
 	ID        uint   `json:"id"`
-	Email     string `json:"email"`
+	Email     string `json:"el_pastas"`
 	FirstName string `json:"vardas"`
 	LastName  string `json:"pavarde"`
+	Username  string `json:"vartotojo_vardas"`
 }
 
 type Verify2FARequest struct {
@@ -48,6 +49,7 @@ func toDTO(u models.Narys) UserDTO {
 		Email:     u.ElPastas,
 		FirstName: u.Vardas,
 		LastName:  u.Pavarde,
+		Username:  u.VartotojoVardas,
 	}
 }
 
@@ -78,6 +80,22 @@ func Login(c *fiber.Ctx) error {
 		"data": fiber.Map{
 			"userId": user.ID,
 		},
+	})
+}
+
+func Logout(c *fiber.Ctx) error {
+	c.Cookie(&fiber.Cookie{
+		Name:     "access_token",
+		Value:    "",
+		HTTPOnly: true,
+		Secure:   os.Getenv("ENV") == "production",
+		SameSite: "Lax",
+		Expires:  time.Now().Add(-1 * time.Hour),
+	})
+
+	return c.JSON(fiber.Map{
+		"status":  "success",
+		"message": "Logged Out",
 	})
 }
 
