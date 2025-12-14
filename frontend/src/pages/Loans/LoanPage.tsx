@@ -40,6 +40,7 @@ interface MonthlyCalculation {
 }
 
 const LoanPage: React.FC = () => {
+  const [user, setUser] = useState<any>(null);
   const [loans, setLoans] = useState<Loan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,12 +57,33 @@ const LoanPage: React.FC = () => {
   const [calculateMonths, setCalculateMonths] = useState("12");
   const navigate = useNavigate();
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/me", { credentials: "include" });
+        if (!res.ok) throw new Error("Failed to load user");
+        const json = await res.json();
+        setUser(json.data);
+      } catch (err) {
+        setError("Unable to load user");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
   useEffect(() => { fetchLoans(); fetchUpcomingPayments(); }, []);
 
   const fetchLoans = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/loans`);
+      const response = await fetch(`${API_URL}/loans`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+      });
       const data = await response.json();
       if (data.status === "success") setLoans(data.data || []);
       else setError(data.error || "Failed to fetch loans");
@@ -71,7 +93,13 @@ const LoanPage: React.FC = () => {
 
   const fetchUpcomingPayments = async () => {
     try {
-      const response = await fetch(`${API_URL}/loans/upcoming?days=7`);
+      const response = await fetch(`${API_URL}/loans/upcoming?days=7`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+            'Content-Type': 'application/json',
+        }, 
+      });
       const data = await response.json();
       if (data.status === "success" && data.data) {
         const payments: UpcomingPayment[] = data.data.map((loan: Loan) => {
@@ -88,7 +116,7 @@ const LoanPage: React.FC = () => {
     e.preventDefault();
     try {
       const response = await fetch(`${API_URL}/loans`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", credentials: 'include', headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ visa_skola: parseFloat(newLoan.visa_skola), mokejimo_kiekis: parseFloat(newLoan.mokejimo_kiekis), kitas_mokejimas: newLoan.kitas_mokejimas, pajamos: parseFloat(newLoan.pajamos) }),
       });
       const data = await response.json();
@@ -100,7 +128,7 @@ const LoanPage: React.FC = () => {
   const handleDeleteLoan = async () => {
     if (!selectedLoan) return;
     try {
-      const response = await fetch(`${API_URL}/loans/${selectedLoan.ID}`, { method: "DELETE" });
+      const response = await fetch(`${API_URL}/loans/${selectedLoan.ID}`, { method: "DELETE", credentials: 'include' });
       const data = await response.json();
       if (data.status === "success") { setShowDeleteModal(false); setSelectedLoan(null); fetchLoans(); fetchUpcomingPayments(); }
       else setError(data.error);
@@ -112,7 +140,7 @@ const LoanPage: React.FC = () => {
     if (!selectedLoan) return;
     try {
       const response = await fetch(`${API_URL}/loans/${selectedLoan.ID}/pay`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", credentials: 'include', headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ suma: parseFloat(payAmount) }),
       });
       const data = await response.json();
@@ -124,7 +152,10 @@ const LoanPage: React.FC = () => {
   const handleCalculate = async () => {
     if (!selectedLoan) return;
     try {
-      const response = await fetch(`${API_URL}/loans/${selectedLoan.ID}/calculate?menesiai=${calculateMonths}`);
+      const response = await fetch(`${API_URL}/loans/${selectedLoan.ID}/calculate?menesiai=${calculateMonths}`, {
+        method: 'GET',
+        credentials: 'include',
+      });
       const data = await response.json();
       if (data.status === "success") setCalculation(data.data);
       else setError(data.error);
