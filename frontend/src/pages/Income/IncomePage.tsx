@@ -15,6 +15,8 @@ export default function IncomePage(){
     const [incomes, setIncomes] = useState<Income[]>([]);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [deletingId, setDeletingId] = useState<number | null>(null);
+    const [deleting, setDeleting] = useState(false);
     const navigate = useNavigate();
 
   useEffect(() => {
@@ -40,7 +42,6 @@ export default function IncomePage(){
     
     const fetchIncomes = async () => {
         setLoading(true);
-
         try {
             // Updated URL to match backend change
             const res = await fetch(`/api/incomes/user/${user.id}`, { 
@@ -66,10 +67,37 @@ export default function IncomePage(){
         }
     };
 
+    const confirmDelete = (id: number) => {
+        setDeletingId(id);
+    };
+    
+    const cancelDelete = () => {
+        setDeletingId(null);
+        setDeleting(false);
+    };
+    
+    const deleteIncome = async () => {
+        if (!deletingId) return;
+        setDeleting(true);
+        try {
+            const res = await fetch(`/api/incomes/${deletingId}`, {
+                method: 'DELETE',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            if (!res.ok) throw new Error('Delete failed');
+            setIncomes(prev => prev.filter(i => i.ID !== deletingId));
+            cancelDelete();
+        } catch (err) {
+            setError('Failed to delete income');
+            setDeleting(false);
+        }
+    };
+    
     return (
         <div>
             <h1>Income Page</h1>
-
+            
             <div style={{ marginBottom: '1rem'}}>
                 <button onClick={() => navigate('create-income')}>Create Income</button>
             </div>
@@ -90,11 +118,31 @@ export default function IncomePage(){
                             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                                 <div style={{ fontWeight: 700 }}>${inc.Suma.toFixed(2)}</div>
                                 <button onClick={() => navigate(`edit-income/${inc.ID}`)}>Edit</button>
+                                <button onClick={() => confirmDelete(inc.ID)}>Delete</button>
                             </div>
                         </li>
                     ))}
                 </ul>
 
+            )}
+            {/* Delete confirmation modal */}
+            {deletingId !== null && (
+                <div style={{
+                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
+                }}>
+                    <div style={{ background: '#fff', padding: 20, borderRadius: 8, width: 360 }}>
+                        <h3>Confirm delete</h3>
+                        <p>Are you sure you want to delete this income?</p>
+                        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                            <button onClick={cancelDelete} disabled={deleting}>Cancel</button>
+                            <button onClick={deleteIncome} disabled={deleting}>
+                                {deleting ? 'Deleting…' : 'Delete'}
+                            </button>
+                        </div>
+                        {error && <div style={{ color: 'red', marginTop: 8 }}>{error}</div>}
+                    </div>
+                </div>
             )}
         </div>
     );
