@@ -15,6 +15,7 @@ import InvestmentsRoutes from './pages/Investments/InvestmentRoutes'
 import SettingsPage from './pages/SettingsPage'
 import Setup2FAPage from './pages/Setup2FAPage'
 
+
 const menuItems: MenuItem[] = [
     { title: 'Home', path: '/home' },
     { title: 'Income', path: '/income' },
