@@ -71,6 +71,7 @@ func main() {
 	incomes.Get("/user/:id", controllers.GetIncomes) // Changed from /:id to /user/:id
 	incomes.Get("/:id", controllers.GetIncome)
 	incomes.Put("/:id", controllers.UpdateIncome)
+	incomes.Delete("/:id", controllers.DeleteIncome)
 
 	groups := api.Group("/groups", middleware.RequireAuth)
 	groups.Get("/:id", controllers.GetUserGroups)

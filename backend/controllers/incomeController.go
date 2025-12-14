@@ -190,3 +190,54 @@ func UpdateIncome(c *fiber.Ctx) error {
 		"income":  income,
 	})
 }
+
+func DeleteIncome(c *fiber.Ctx) error {
+	idParam := c.Params("id")
+	if idParam == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Missing income id"})
+	}
+
+	id64, err := strconv.ParseUint(idParam, 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid id parameter"})
+	}
+	id := uint(id64)
+
+	var income models.Pajama
+	if err := initializers.DB.First(&income, id).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Income not found"})
+	}
+
+	// determine authenticated user id
+	var userID uint
+	if u := c.Locals("user"); u != nil {
+		if usr, ok := u.(*models.Narys); ok {
+			userID = usr.ID
+		} else if usr, ok := u.(models.Narys); ok {
+			userID = usr.ID
+		}
+	}
+	if userID == 0 {
+		if uid := c.Locals("userID"); uid != nil {
+			if idv, ok := uid.(uint); ok {
+				userID = idv
+			} else if f, ok := uid.(float64); ok {
+				userID = uint(f)
+			}
+		}
+	}
+	if userID == 0 {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthenticated"})
+	}
+
+	// ensure ownership
+	if income.NarysID != userID {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Forbidden"})
+	}
+
+	if err := initializers.DB.Delete(&income).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Could not delete income"})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "Income deleted successfully"})
+}

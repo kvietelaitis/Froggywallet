@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import { useNavigate, useParams } from "react-router-dom";
+
+const today = new Date();
+const earliestAllowed = new Date(2000, 0, 1); // example min date
 
 function IncomeEditPage() {
     const { id } = useParams<{ id: string }>();
@@ -7,7 +12,7 @@ function IncomeEditPage() {
 
     const [name, setName] = useState('');
     const [amount, setAmount] = useState<number | ''>('');
-    const [date, setDate] = useState('');
+    const [date, setDate] = useState<Date | null>(today);
     const [currency, setCurrency] = useState('USD');
 
     const [error, setError] = useState<string | null>(null);
@@ -34,7 +39,7 @@ function IncomeEditPage() {
                 const data = await response.json();
                 setName(data.income.Aprasymas || '');
                 setAmount(data.income.Suma || 0);
-                setDate(data.income.Data ? new Date(data.income.Data).toISOString().substring(0, 10) : '');
+                setDate(data.income.Data ? new Date(data.income.Data) : null);
                 setCurrency(data.income.Valiuta || 'USD');
             } else {
                 setError('Failed to load income data.');
@@ -66,7 +71,7 @@ const handleSubmit = async (event: React.FormEvent) => {
                     id,
                     name,
                     amount: amount === '' ? 0 : amount,
-                    date,
+                    date: date ? date.toISOString().split('T')[0] : '',
                     currency,
                 }),
             });
@@ -120,12 +125,22 @@ const handleSubmit = async (event: React.FormEvent) => {
                     <label>
                         Date:
                     </label>
-                    <input
-                        type="date"
-                        required
-                        value={date}
-                        onChange={(e) => setDate(e.target.value)}
-                    />
+                    <div>
+                        <DatePicker
+                            selected={date}
+                            onChange={(d: Date | null) => setDate(d)}
+                            minDate={earliestAllowed}
+                            maxDate={today}
+                            placeholderText="Select date"
+                            dateFormat="yyyy-MM-dd"
+                            disabledKeyboardNavigation
+                            renderDayContents={(day, dateObj) => (
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                    <span>{day}</span>
+                                </div>
+                            )}
+                        />
+                    </div>
                 </div>
 
                 <div>
