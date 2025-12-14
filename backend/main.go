@@ -74,6 +74,9 @@ func main() {
 	investments.Put("/:id", controllers.UpdateInvestment)
 	investments.Delete("/:id", controllers.DeleteInvestment)
 
+	// Sektoriai routes
+	api.Get("/sektoriai", controllers.GetSektoriai)
+
 	// // setup routes
 	// frontend_routes := []string{
 	// 	"/",

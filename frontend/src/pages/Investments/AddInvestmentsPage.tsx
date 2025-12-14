@@ -1,24 +1,24 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react';
 
 export default function AddInvestmentsPage() {
   const today = new Date().toISOString().split('T')[0];
 
-  const [shares, setShares] = React.useState('');
-  const [sector, setSector] = React.useState('');
-  const [name, setName] = React.useState('');
-  const [purchaseDate, setPurchaseDate] = React.useState(today);
-  const [price, setPrice] = React.useState('');
-  const [loading, setLoading] = React.useState(false);
+  const [shares, setShares] = useState('');
+  const [sector, setSector] = useState('');
+  const [name, setName] = useState('');
+  const [purchaseDate, setPurchaseDate] = useState(today);
+  const [price, setPrice] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [sectors, setSectors] = useState<{id: number, pavadinimas: string}[]>([]);
 
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
-  const sectorOptions = [
-    { id: 1, name: 'Tech' },
-    { id: 2, name: 'Bonds' },
-    { id: 3, name: 'Housing' },
-    { id: 4, name: 'Stocks' },
-    { id: 5, name: 'Other' },
-  ];
+  useEffect(() => {
+    fetch(`${API_URL}/sektoriai`)
+      .then(res => res.json())
+      .then(data => setSectors(data.data || []))
+      .catch(console.error);
+  }, []);
 
   const handleAddInvestment = async () => {
     if (!name || !shares || !price || !purchaseDate || !sector) {
@@ -41,25 +41,23 @@ export default function AddInvestmentsPage() {
         }),
       });
 
-      // Try parsing only if response has JSON
-      let data;
-      try {
-        data = await response.json();
-      } catch {
-        data = { error: response.statusText || 'Invalid JSON from server' };
-      }
+      const data = await response.json();
 
       if (response.ok) {
         alert('Investment added successfully!');
+        setName('');
+        setShares('');
+        setPrice('');
+        setSector('');
+        setPurchaseDate(today);
       } else {
         alert(data.error || 'Something went wrong');
       }
-
-    }
-     catch (err) {
+    } catch (err) {
       console.error(err);
-      setLoading(false);
       alert('Error adding investment');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -71,46 +69,24 @@ export default function AddInvestmentsPage() {
         <p style={{ textAlign: 'left' }}>Investment sector</p>
         <select value={sector} onChange={(e) => setSector(e.target.value)}>
           <option value="">Choose investment sector</option>
-          {sectorOptions.map((s) => (
-            <option key={s.id} value={s.id}>{s.name}</option>
+          {sectors.map(s => (
+            <option key={s.id} value={s.id}>{s.pavadinimas}</option>
           ))}
         </select>
 
         <p style={{ textAlign: 'left' }}>Name of investment</p>
-        <input
-          type="text"
-          placeholder="Write the name of the investment"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
+        <input type="text" placeholder="Write the name of the investment" value={name} onChange={e => setName(e.target.value)} />
 
         <p style={{ textAlign: 'left' }}>Shares</p>
-        <input
-          type="number"
-          placeholder="Write the number of shares"
-          value={shares}
-          onChange={(e) => setShares(e.target.value)}
-        />
+        <input type="number" placeholder="Number of shares" value={shares} onChange={e => setShares(e.target.value)} />
 
         <p style={{ textAlign: 'left' }}>Price</p>
-        <input
-          type="number"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-        />
+        <input type="number" value={price} onChange={e => setPrice(e.target.value)} />
 
         <p style={{ textAlign: 'left' }}>Purchase date</p>
-        <input
-          type="date"
-          value={purchaseDate}
-          onChange={(e) => setPurchaseDate(e.target.value)}
-        />
+        <input type="date" value={purchaseDate} onChange={e => setPurchaseDate(e.target.value)} />
 
-        <button
-          onClick={handleAddInvestment}
-          style={{ width: '100%', marginTop: '25px', cursor: 'pointer' }}
-          disabled={loading}
-        >
+        <button onClick={handleAddInvestment} style={{ width: '100%', marginTop: '25px', cursor: 'pointer' }} disabled={loading}>
           {loading ? 'Adding...' : 'Add Investment'}
         </button>
       </div>

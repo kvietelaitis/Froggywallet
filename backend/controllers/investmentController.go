@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"time"
 
@@ -12,31 +13,33 @@ import (
 ======================= */
 
 type CreateInvestmentRequest struct {
-	Pavadinimas string  `json:"pavadinimas"`
-	Kiekis      int     `json:"kiekis"`
+	Pavadinimas  string  `json:"pavadinimas"`
+	Kiekis       int     `json:"kiekis"`
 	PirkimoKaina float64 `json:"pirkimo_kaina"`
-	PirkimoData string  `json:"pirkimo_data"`
-	SektoriusID uint    `json:"sektorius_id"`
+	PirkimoData  string  `json:"pirkimo_data"`
+	SektoriusID  uint    `json:"sektorius_id"`
 }
 
 type UpdateInvestmentRequest struct {
-	Pavadinimas string  `json:"pavadinimas"`
-	Kiekis      int     `json:"kiekis"`
+	Pavadinimas  string  `json:"pavadinimas"`
+	Kiekis       int     `json:"kiekis"`
 	PirkimoKaina float64 `json:"pirkimo_kaina"`
-	PirkimoData string  `json:"pirkimo_data"`
-	SektoriusID uint    `json:"sektorius_id"`
+	PirkimoData  string  `json:"pirkimo_data"`
+	SektoriusID  uint    `json:"sektorius_id"`
 }
 
 /* =======================
    INVESTMENT CONTROLLERS
 ======================= */
 
-// GetInvestments – gauti visas investicijas
+// GetInvestments – get all investments for current user
 func GetInvestments(c *fiber.Ctx) error {
-	var investments []models.Investicija
+	userID := c.Locals("userID").(uint)
 
+	var investments []models.Investicija
 	if err := initializers.DB.
 		Preload("SektoriusObj").
+		Where("narys_id = ?", userID).
 		Order("created_at DESC").
 		Find(&investments).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -50,14 +53,15 @@ func GetInvestments(c *fiber.Ctx) error {
 	})
 }
 
-// GetInvestment – gauti vieną investiciją
+// GetInvestment – get a single investment
 func GetInvestment(c *fiber.Ctx) error {
+	userID := c.Locals("userID").(uint)
 	id := c.Params("id")
-	var investment models.Investicija
 
-	if err := initializers.DB.
-		Preload("SektoriusObj").
-		First(&investment, id).Error; err != nil {
+	var investment models.Investicija
+	if err := initializers.DB.Preload("SektoriusObj").
+		Where("id = ? AND narys_id = ?", id, userID).
+		First(&investment).Error; err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "Investicija nerasta",
 		})
@@ -69,14 +73,13 @@ func GetInvestment(c *fiber.Ctx) error {
 	})
 }
 
-// CreateInvestment – sukurti naują investiciją
+// CreateInvestment – create new investment
 func CreateInvestment(c *fiber.Ctx) error {
 	var body CreateInvestmentRequest
 	if err := c.BodyParser(&body); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Neteisingi duomenys"})
 	}
 
-	// Check sector exists
 	var sector models.Sektorius
 	if err := initializers.DB.First(&sector, body.SektoriusID).Error; err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Pasirinktas sektorius neegzistuoja"})
@@ -87,7 +90,10 @@ func CreateInvestment(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Neteisingas datos formatas"})
 	}
 
+	userID := c.Locals("userID").(uint)
+
 	investment := models.Investicija{
+		NarysID:      userID,
 		Pavadinimas:  body.Pavadinimas,
 		Kiekis:       body.Kiekis,
 		PirkimoKaina: body.PirkimoKaina,
@@ -106,29 +112,24 @@ func CreateInvestment(c *fiber.Ctx) error {
 	})
 }
 
-// UpdateInvestment – atnaujinti investiciją
+// UpdateInvestment – update an investment
 func UpdateInvestment(c *fiber.Ctx) error {
+	userID := c.Locals("userID").(uint)
 	id := c.Params("id")
-	var investment models.Investicija
 
-	if err := initializers.DB.First(&investment, id).Error; err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "Investicija nerasta",
-		})
+	var investment models.Investicija
+	if err := initializers.DB.Where("id = ? AND narys_id = ?", id, userID).First(&investment).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Investicija nerasta"})
 	}
 
 	var body UpdateInvestmentRequest
 	if err := c.BodyParser(&body); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Neteisingi duomenys",
-		})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Neteisingi duomenys"})
 	}
 
 	purchaseDate, err := time.Parse("2006-01-02", body.PirkimoData)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Neteisingas datos formatas",
-		})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Neteisingas datos formatas"})
 	}
 
 	investment.Pavadinimas = body.Pavadinimas
@@ -138,9 +139,7 @@ func UpdateInvestment(c *fiber.Ctx) error {
 	investment.SektoriusID = body.SektoriusID
 
 	if err := initializers.DB.Save(&investment).Error; err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Nepavyko atnaujinti investicijos",
-		})
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Nepavyko atnaujinti investicijos"})
 	}
 
 	return c.JSON(fiber.Map{
@@ -150,25 +149,42 @@ func UpdateInvestment(c *fiber.Ctx) error {
 	})
 }
 
-// DeleteInvestment – pašalinti investiciją
+// DeleteInvestment – delete an investment
 func DeleteInvestment(c *fiber.Ctx) error {
+	userID := c.Locals("userID").(uint)
 	id := c.Params("id")
-	var investment models.Investicija
 
-	if err := initializers.DB.First(&investment, id).Error; err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "Investicija nerasta",
-		})
+	var investment models.Investicija
+	if err := initializers.DB.Where("id = ? AND narys_id = ?", id, userID).First(&investment).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Investicija nerasta"})
 	}
 
 	if err := initializers.DB.Delete(&investment).Error; err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Nepavyko pašalinti investicijos",
-		})
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Nepavyko pašalinti investicijos"})
 	}
 
 	return c.JSON(fiber.Map{
 		"status":  "success",
 		"message": "Investicija pašalinta sėkmingai",
+	})
+}
+
+/* =======================
+   SEKTORIAI CONTROLLER
+======================= */
+
+// GetSektoriai – get all sectors
+func GetSektoriai(c *fiber.Ctx) error {
+	var sektoriai []models.Sektorius
+
+	if err := initializers.DB.Order("id ASC").Find(&sektoriai).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Nepavyko gauti sektorių",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status": "success",
+		"data":   sektoriai,
 	})
 }
