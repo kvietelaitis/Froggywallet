@@ -15,6 +15,7 @@ import InvestmentsRoutes from './pages/Investments/InvestmentRoutes'
 import SettingsPage from './pages/SettingsPage'
 import Setup2FAPage from './pages/Setup2FAPage'
 import ProtectedRoute from './_components/ProtectedRoutes'
+
 import { UserProvider } from './_components/Users/UserProvider'
 
 const menuItems: MenuItem[] = [
