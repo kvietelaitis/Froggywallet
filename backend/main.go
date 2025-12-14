@@ -72,6 +72,9 @@ func main() {
 	incomes.Get("/:id", controllers.GetIncome)
 	incomes.Put("/:id", controllers.UpdateIncome)
 
+	groups := api.Group("/groups", middleware.RequireAuth)
+	groups.Get("/:id", controllers.GetUserGroups)
+
 	user := api.Group("/user", middleware.RequireAuth)
 	user.Put("/change-info/:id", controllers.ChangeUserInfo)
 	user.Put("/change-password/:id", controllers.ChangePassword)
