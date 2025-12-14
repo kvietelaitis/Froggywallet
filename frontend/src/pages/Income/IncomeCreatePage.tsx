@@ -20,6 +20,7 @@ function IncomeCreationPage() {
 
         try {
             const response = await fetch(`${API_URL}/incomes/create-income`, {
+                credentials: 'include',
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

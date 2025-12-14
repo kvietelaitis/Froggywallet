@@ -32,11 +32,37 @@ func CreateIncome(c *fiber.Ctx) error {
 		})
 	}
 
+	var userID uint
+
+	// 1. Try getting full user model from "user" key
+	if u := c.Locals("user"); u != nil {
+		if usr, ok := u.(*models.Narys); ok {
+			userID = usr.ID
+		} else if usr, ok := u.(models.Narys); ok {
+			userID = usr.ID
+		}
+	}
+
+	if userID == 0 {
+		if uid := c.Locals("userID"); uid != nil {
+			if id, ok := uid.(uint); ok {
+				userID = id
+			} else if id, ok := uid.(float64); ok {
+				userID = uint(id)
+			}
+		}
+	}
+
+	if userID == 0 {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthenticated"})
+	}
+
 	income := models.Pajama{
 		Aprasymas: input.Name,
 		Suma:      input.Amount,
 		Data:      parsedDate,
 		Valiuta:   input.Currency,
+		NarysID:   userID, // Correctly assigned ID
 	}
 
 	if result := initializers.DB.Create(&income); result.Error != nil {
@@ -52,9 +78,23 @@ func CreateIncome(c *fiber.Ctx) error {
 }
 
 func GetIncomes(c *fiber.Ctx) error {
+	idParam := c.Params("id")
+	if idParam == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Missing income id",
+		})
+	}
+
+	id64, err := strconv.ParseUint(idParam, 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid id parameter"})
+	}
+
+	id := uint(id64)
+
 	var incomes []models.Pajama
 
-	if err := initializers.DB.Find(&incomes).Error; err != nil {
+	if err := initializers.DB.Where("narys_id = ?", id).Find(&incomes).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Could not retrieve incomes",
 		})

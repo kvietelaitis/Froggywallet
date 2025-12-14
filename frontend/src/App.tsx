@@ -16,6 +16,8 @@ import SettingsPage from './pages/SettingsPage'
 import Setup2FAPage from './pages/Setup2FAPage'
 import ProtectedRoute from './_components/ProtectedRoutes'
 
+import { UserProvider } from './_components/Users/UserProvider'
+
 const menuItems: MenuItem[] = [
     { title: 'Home', path: '/home' },
     { title: 'Income', path: '/income' },
@@ -35,35 +37,37 @@ function AppContent(): JSX.Element {
     <div className="app-layout">
         {!hideSidebar && <SidebarMenu menuItems={menuItems} />}
         <main className={`app-main-content${hideSidebar ? ' no-sidebar' : ''}`}>
-          <Routes>
-            <Route path="/" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/auth" element={<AuthPage />} />
-            <Route path="/setup-2fa" element={<Setup2FAPage/>}/>
-            
-            <Route element={<ProtectedRoute />}>
-              <Route path="/home" element={<HomePage />} />
-              <Route path="/settings" element={<SettingsPage />} />
+          <UserProvider>
+            <Routes>
+              <Route path="/" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="/setup-2fa" element={<Setup2FAPage/>}/>
+              
+              <Route element={<ProtectedRoute />}>
+                <Route path="/home" element={<HomePage />} />
+                <Route path="/settings" element={<SettingsPage />} />
 
-              {/* Income Routes */}
-              <Route path="/income/*" element={<IncomeRoutes />} />
+                {/* Income Routes */}
+                <Route path="/income/*" element={<IncomeRoutes />} />
 
-              {/* Budget Routes */}
-              <Route path="/budget/*" element={<BudgetRoutes />} />
+                {/* Budget Routes */}
+                <Route path="/budget/*" element={<BudgetRoutes />} />
 
-              {/* Expense Routes */}
-              <Route path="/expenses/*" element={<ExpensesRoutes />} />
+                {/* Expense Routes */}
+                <Route path="/expenses/*" element={<ExpensesRoutes />} />
 
-              {/* Investations Routes */}
-              <Route path="/investments/*" element={<InvestmentsRoutes/>} />
+                {/* Investations Routes */}
+                <Route path="/investments/*" element={<InvestmentsRoutes/>} />
 
-              {/* Loan Routes */}
-              <Route path="/loan/*" element={<LoanRoutes />} />
+                {/* Loan Routes */}
+                <Route path="/loan/*" element={<LoanRoutes />} />
 
-              {/* Group routes */}
-              <Route path='/groups/*' element={<GroupRoutes />} />
-            </Route>
-          </Routes>
+                {/* Group routes */}
+                <Route path='/groups/*' element={<GroupRoutes />} />
+              </Route>
+            </Routes>
+          </UserProvider>
         </main>
     </div>
   )

@@ -68,20 +68,17 @@ func main() {
 
 	incomes := api.Group("/incomes", middleware.RequireAuth)
 	incomes.Post("/create-income", controllers.CreateIncome)
-	incomes.Get("/", controllers.GetIncomes)
+	incomes.Get("/user/:id", controllers.GetIncomes) // Changed from /:id to /user/:id
 	incomes.Get("/:id", controllers.GetIncome)
 	incomes.Put("/:id", controllers.UpdateIncome)
 
-	expenses := api.Group("/expenses")
-	expenses.Get("/", controllers.GetExpenses)
-	expenses.Get("/:id", controllers.GetExpense)
-	expenses.Post("/", controllers.CreateExpense)
-	expenses.Put("/:id", controllers.UpdateExpense)
-	expenses.Delete("/:id", controllers.DeleteExpense)
+	groups := api.Group("/groups", middleware.RequireAuth)
+	groups.Get("/:id", controllers.GetUserGroups)
 
-	categories := api.Group("/categories")
-	categories.Get("/", controllers.GetCategories)
-	categories.Post("/", controllers.CreateCategory)
+	user := api.Group("/user", middleware.RequireAuth)
+	user.Put("/change-info/:id", controllers.ChangeUserInfo)
+	user.Put("/change-password/:id", controllers.ChangePassword)
+
 	// // setup routes
 	// frontend_routes := []string{
 	// 	"/",
