@@ -14,6 +14,7 @@ import BudgetRoutes from './pages/Budget/BudgetRoutes'
 import InvestmentsRoutes from './pages/Investments/InvestmentRoutes'
 import SettingsPage from './pages/SettingsPage'
 import Setup2FAPage from './pages/Setup2FAPage'
+import ProtectedRoute from './_components/ProtectedRoutes'
 
 
 const menuItems: MenuItem[] = [
@@ -38,29 +39,31 @@ function AppContent(): JSX.Element {
           <Routes>
             <Route path="/" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
-            <Route path="/home" element={<HomePage />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/setup-2fa" element={<Setup2FAPage/>}/>
-            <Route path="/settings" element={<SettingsPage />} />
             
-            {/* Income Routes */}
-            <Route path="/income/*" element={<IncomeRoutes />} />
+            <Route element={<ProtectedRoute />}>
+              <Route path="/home" element={<HomePage />} />
+              <Route path="/settings" element={<SettingsPage />} />
 
-            {/* Budget Routes */}
-            <Route path="/budget/*" element={<BudgetRoutes />} />
+              {/* Income Routes */}
+              <Route path="/income/*" element={<IncomeRoutes />} />
 
-            {/* Expense Routes */}
-            <Route path="/expenses/*" element={<ExpensesRoutes />} />
+              {/* Budget Routes */}
+              <Route path="/budget/*" element={<BudgetRoutes />} />
 
-            {/* Investations Routes */}
-            <Route path="/investments/*" element={<InvestmentsRoutes/>} />
+              {/* Expense Routes */}
+              <Route path="/expenses/*" element={<ExpensesRoutes />} />
 
-            {/* Loan Routes */}
-            <Route path="/loan/*" element={<LoanRoutes />} />
+              {/* Investations Routes */}
+              <Route path="/investments/*" element={<InvestmentsRoutes/>} />
 
-            {/* Group routes */}
-            <Route path='/groups/*' element={<GroupRoutes />} />
-            
+              {/* Loan Routes */}
+              <Route path="/loan/*" element={<LoanRoutes />} />
+
+              {/* Group routes */}
+              <Route path='/groups/*' element={<GroupRoutes />} />
+            </Route>
           </Routes>
         </main>
     </div>

@@ -20,6 +20,7 @@ interface Debtor {
 }
 
 const DebtorPage: React.FC = () => {
+  const [user, setUser] = useState<any>(null);
   const [debtors, setDebtors] = useState<Debtor[]>([]);
   const [loans, setLoans] = useState<Loan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,7 +36,22 @@ const DebtorPage: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedDebtor, setSelectedDebtor] = useState<Debtor | null>(null);
-  
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/me", { credentials: "include" });
+        if (!res.ok) throw new Error("Failed to load user");
+        const json = await res.json();
+        setUser(json.data);
+      } catch (err) {
+        setError("Unable to load user");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
   const [formData, setFormData] = useState({
     paskola_id: "",
     pavadinimas: "",
@@ -53,7 +69,13 @@ const DebtorPage: React.FC = () => {
   const fetchDebtors = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/debtors`);
+      const response = await fetch(`${API_URL}/debtors`, {
+        method:'GET',
+        credentials: 'include',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+      });
       const data = await response.json();
       if (data.status === "success") {
         setDebtors(data.data || []);
@@ -69,7 +91,13 @@ const DebtorPage: React.FC = () => {
 
   const fetchLoans = async () => {
     try {
-      const response = await fetch(`${API_URL}/loans`);
+      const response = await fetch(`${API_URL}/loans`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+      });
       const data = await response.json();
       if (data.status === "success") {
         setLoans(data.data || []);
@@ -88,7 +116,13 @@ const DebtorPage: React.FC = () => {
       if (filterPhone) params.append("tel_nr", filterPhone);
       if (filterLoanId) params.append("paskola_id", filterLoanId);
       
-      const response = await fetch(`${API_URL}/debtors/filter?${params.toString()}`);
+      const response = await fetch(`${API_URL}/debtors/filter?${params.toString()}`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+      });
       const data = await response.json();
       if (data.status === "success") {
         setDebtors(data.data || []);
@@ -115,6 +149,7 @@ const DebtorPage: React.FC = () => {
     try {
       const response = await fetch(`${API_URL}/debtors`, {
         method: "POST",
+        credentials: 'include',
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           paskola_id: parseInt(formData.paskola_id),
@@ -142,6 +177,7 @@ const DebtorPage: React.FC = () => {
     try {
       const response = await fetch(`${API_URL}/debtors/${selectedDebtor.ID}`, {
         method: "PUT",
+        credentials: 'include',
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           pavadinimas: formData.pavadinimas,
@@ -168,6 +204,7 @@ const DebtorPage: React.FC = () => {
     try {
       const response = await fetch(`${API_URL}/debtors/${selectedDebtor.ID}`, {
         method: "DELETE",
+        credentials: 'include',
       });
       const data = await response.json();
       if (data.status === "success") {
