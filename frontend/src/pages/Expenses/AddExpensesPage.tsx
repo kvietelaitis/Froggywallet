@@ -17,6 +17,9 @@ export default function AddExpensesPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
 
+  // Recurrence
+  const [recurrence, setRecurrence] = React.useState(""); // pasikartojimo tipas
+
   // Modal state
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [newCategoryName, setNewCategoryName] = React.useState("");
@@ -94,7 +97,7 @@ export default function AddExpensesPage() {
           mokejimo_budas: paymentType,
           komentaras: comment,
           kategorija_id: categoryId || null,
-          pasikartojimo_tipas: "",
+          pasikartojimo_tipas: recurrence, // <-- pridėta
         }),
       });
 
@@ -118,7 +121,9 @@ export default function AddExpensesPage() {
         <h1>Add Expense</h1>
 
         {error && (
-          <div style={{ background: "#f8d7da", color: "#721c24", padding: 12, borderRadius: 8, marginBottom: 16 }}>
+          <div
+            style={{ background: "#f8d7da", color: "#721c24", padding: 12, borderRadius: 8, marginBottom: 16 }}
+          >
             {error}
           </div>
         )}
@@ -147,6 +152,15 @@ export default function AddExpensesPage() {
               {cat.Pavadinimas}
             </option>
           ))}
+        </select>
+
+        <p style={{ textAlign: "left" }}>Recurrence</p>
+        <select value={recurrence} onChange={(e) => setRecurrence(e.target.value)}>
+          <option value="">None</option>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+          <option value="yearly">Yearly</option>
         </select>
 
         <p style={{ textAlign: "left" }}>Amount *</p>
