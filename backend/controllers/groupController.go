@@ -3,8 +3,10 @@ package controllers
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"log"
 	"strconv"
 
+	"github.com/KvietelaitisMartynas/froggywallet/backend/helpers"
 	"github.com/KvietelaitisMartynas/froggywallet/backend/initializers"
 	"github.com/KvietelaitisMartynas/froggywallet/backend/models"
 	"github.com/gofiber/fiber/v2"
@@ -235,6 +237,11 @@ func CreateInvite(c *fiber.Ctx) error {
 		return c.Status(403).JSON(fiber.Map{"error": "Admin required"})
 	}
 
+	var group models.Grupe
+	if err := initializers.DB.First(&group, groupID).Error; err != nil {
+		return c.Status(404).JSON(fiber.Map{"error": "Group not found"})
+	}
+
 	var body CreateInviteRequest
 	if err := c.BodyParser(&body); err != nil {
 		return c.Status(400).JSON(fiber.Map{
@@ -267,6 +274,15 @@ func CreateInvite(c *fiber.Ctx) error {
 			"error": "Failed to create invite",
 		})
 	}
+
+	// Send invite email asynchronously
+	go func() {
+		if err := helpers.SendInviteEmail(invite.ElPastas, invite.Token, group.Pavadinimas); err != nil {
+			log.Printf("Failed to send invite email to %s: %v", invite.ElPastas, err)
+		} else {
+			log.Printf("Invite email sent to %s", invite.ElPastas)
+		}
+	}()
 
 	return c.JSON(fiber.Map{
 		"status": "success",
