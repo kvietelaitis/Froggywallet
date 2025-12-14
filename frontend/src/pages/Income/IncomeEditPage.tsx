@@ -58,6 +58,7 @@ const handleSubmit = async (event: React.FormEvent) => {
         try {
             const response = await fetch(`/api/incomes/${id}`, {
                 method: 'PUT',
+                 credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
                 },

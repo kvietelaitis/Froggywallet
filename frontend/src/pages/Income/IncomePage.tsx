@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useUser } from '../../_components/Users/UserProvider';
 
 type Income = {
     ID: number;
@@ -10,18 +11,43 @@ type Income = {
 };
 
 export default function IncomePage(){
+    const [user, setUser] = useState<any>(null);
     const [incomes, setIncomes] = useState<Income[]>([]);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
-    useEffect(() => { fetchIncomes(); }, []);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/me", { credentials: "include" });
+        if (!res.ok) throw new Error("Failed to load user");
+        const json = await res.json();
+        setUser(json.data);
+      } catch (err) {
+        setError("Unable to load user");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
+    useEffect(() => {
+        if (user) {
+            fetchIncomes();
+        }
+    }, [user]);
+    
     const fetchIncomes = async () => {
         setLoading(true);
 
         try {
-            const res = await fetch("/api/incomes", { headers: { "Content-Type": "application/json" } });
+            // Updated URL to match backend change
+            const res = await fetch(`/api/incomes/user/${user.id}`, { 
+                credentials: 'include',
+                method: 'GET',
+                headers: { "Content-Type": "application/json" } 
+            });
             const data = await res.json();
             // backend may return array or { incomes: [...] }
             const items = (data.incomes ?? data ?? []) as any[];
