@@ -8,7 +8,6 @@ import (
 
 type Islaida struct {
 	gorm.Model
-	ID             uint      `gorm:"primaryKey"`
 	KategorijaID   *uint     // Optional category ID
 	Suma           float64   `gorm:"not null"`
 	Data           time.Time `gorm:"not null"`
