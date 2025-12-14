@@ -14,7 +14,6 @@ type Investicija struct {
 	Kiekis       int       `gorm:"not null"` // Quantity
 	PirkimoKaina float64   `gorm:"not null"` // Purchase price
 	PirkimoData  time.Time `gorm:"not null"` // Purchase date
-	Sektorius    string    // Sector/Industry
 
 	// Relationships
 	SektoriusObj   Sektorius        `gorm:"foreignKey:SektoriusID"`
