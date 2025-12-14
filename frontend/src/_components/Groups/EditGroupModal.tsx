@@ -123,7 +123,7 @@ export default function EditGroupModal({ open, groupId, onClose, onUpdated }: Pr
                         ))}
                         </ul>
                     </>
-                    )}
+                )}
 
                 <div style={{display:'flex', gap:'.5rem', marginTop:'1rem'}}>
                 <button type="button" className="reg-button" onClick={onClose} style={{flex:1}}>Cancel</button>

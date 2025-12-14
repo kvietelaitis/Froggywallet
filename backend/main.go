@@ -76,6 +76,7 @@ func main() {
 	groups.Get("/:id", controllers.GetUserGroups)
 	groups.Get("/info/:id", controllers.GetGroup)
 	groups.Put("/change-info/:id", controllers.UpdateGroup)
+	groups.Post("/:id/invite", controllers.CreateInvite)
 
 	user := api.Group("/user", middleware.RequireAuth)
 	user.Put("/change-info/:id", controllers.ChangeUserInfo)

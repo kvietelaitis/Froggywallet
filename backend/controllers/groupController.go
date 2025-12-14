@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"strconv"
 
 	"github.com/KvietelaitisMartynas/froggywallet/backend/initializers"
@@ -13,6 +15,16 @@ type UpdateGroupRequest struct {
 	Aprasymas   string `json:"aprasymas"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
+}
+
+type CreateInviteRequest struct {
+	Email string `json:"el_pastas"`
+}
+
+func generateToken() string {
+	b := make([]byte, 32)
+	rand.Read(b)
+	return hex.EncodeToString(b)
 }
 
 func GetUserGroups(c *fiber.Ctx) error {
@@ -160,4 +172,79 @@ func UpdateGroup(c *fiber.Ctx) error {
 		"members":     members,
 	}
 	return c.JSON(fiber.Map{"status": "success", "data": dto})
+}
+
+func CreateInvite(c *fiber.Ctx) error {
+	groupIDp, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "invalid id"})
+	}
+
+	groupID := uint(groupIDp)
+
+	uidLoc := c.Locals("userID")
+	if uidLoc == nil {
+		return c.Status(401).JSON(fiber.Map{
+			"error": "unauthorized",
+		})
+	}
+
+	senderID := uidLoc.(uint)
+
+	var sender models.Narys
+	if err := initializers.DB.Preload("Role").First(&sender, senderID).Error; err != nil {
+		return c.Status(401).JSON(fiber.Map{
+			"error": "User not found",
+		})
+	}
+
+	if sender.GrupeID == nil || *sender.GrupeID != groupID {
+		return c.Status(403).JSON(fiber.Map{"error": "Not a member"})
+	}
+
+	if sender.Role.RolesPavadinimas != "Administratorius" {
+		return c.Status(403).JSON(fiber.Map{"error": "Admin required"})
+	}
+
+	var body CreateInviteRequest
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(400).JSON(fiber.Map{
+			"error": "Invalid body",
+		})
+	}
+
+	if body.Email == "" {
+		return c.Status(400).JSON(fiber.Map{
+			"error": "Email required",
+		})
+	}
+
+	var existing models.Pakvietimas
+	if err := initializers.DB.Where("el_pastas = ? AND grupe_id = ? AND busena = ?",
+		body.Email, groupID, models.BusenaLaukiamas).First(&existing).Error; err == nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invite already exists"})
+	}
+
+	invite := models.Pakvietimas{
+		GrupeID:            &groupID,
+		PakvietePasiunteID: senderID,
+		ElPastas:           body.Email,
+		Token:              generateToken(),
+		Busena:             models.BusenaLaukiamas,
+	}
+
+	if err := initializers.DB.Create(&invite).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"error": "Failed to create invite",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status": "success",
+		"data": fiber.Map{
+			"id":    invite.ID,
+			"token": invite.Token,
+			"email": invite.ElPastas,
+		},
+	})
 }

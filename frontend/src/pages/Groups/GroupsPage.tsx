@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import EditGroupModal from '../../_components/Groups/EditGroupModal';
+import InviteMemberModal from "../../_components/Groups/InviteMemberModal";
 
 type Group = {
     id: string;
@@ -14,6 +15,7 @@ export default function GroupsPage(){
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(true);
     const [groupsLoading, setGroupsLoading] = useState(false);
+    const [showInvite, setShowInvite] = useState(false);
     const navigate = useNavigate();
 
     const [openGroupInfo, setOpenGroup] = useState(false);
@@ -98,9 +100,17 @@ export default function GroupsPage(){
                         {g.members?.length ?? 0} member{(g.members?.length ?? 0) !== 1 ? 's' : ''}
                     </p>
                     </div>
-                    <div style={{ marginLeft: 12 }}>
+                    <div style={{ marginLeft: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <button onClick={() => setOpenGroup(true)} style={{ padding: '6px 10px' }}>Open</button>
+                    <button onClick={() => setShowInvite(true)} style={{ padding: '6px 10px' }}>Invite Member</button>
                     </div>
+
+                    <InviteMemberModal
+                        open={showInvite}
+                        groupId={g.id || ""}
+                        onClose={() => setShowInvite(false)}
+                        onInvited={() => {}}
+                    />
                 </div>
 
                 {g.members && g.members.length > 0 && (

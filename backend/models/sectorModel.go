@@ -13,5 +13,4 @@ type Sektorius struct {
 	// Relationships
 	Narys        Narys         `gorm:"foreignKey:NarysID"`
 	Investicijos []Investicija `gorm:"foreignKey:SektoriusID"`
-	Pakvietimai  []Pakvietimas `gorm:"foreignKey:SektoriusID"`
 }
