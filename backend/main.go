@@ -73,7 +73,8 @@ func main() {
 	incomes.Put("/:id", controllers.UpdateIncome)
 
 	user := api.Group("/user", middleware.RequireAuth)
-	user.Put("/:id", controllers.ChangeUserInfo)
+	user.Put("/change-info/:id", controllers.ChangeUserInfo)
+	user.Put("/change-password/:id", controllers.ChangePassword)
 
 	// // setup routes
 	// frontend_routes := []string{
