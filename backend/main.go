@@ -91,6 +91,17 @@ func main() {
 	categories.Get("/", controllers.GetCategories)
 	categories.Post("/", controllers.CreateCategory)
 
+	// Investment routes
+	investments := api.Group("/investments")
+	investments.Get("/", controllers.GetInvestments)
+	investments.Get("/:id", controllers.GetInvestment)
+	investments.Post("/", controllers.CreateInvestment)
+	investments.Put("/:id", controllers.UpdateInvestment)
+	investments.Delete("/:id", controllers.DeleteInvestment)
+
+	// Sektoriai routes
+	api.Get("/sektoriai", controllers.GetSektoriai)
+
 	// // setup routes
 	// frontend_routes := []string{
 	// 	"/",
