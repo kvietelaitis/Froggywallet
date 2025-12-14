@@ -297,6 +297,23 @@ export default function ExpensesPage() {
     setModalError(null);
   };
 
+  const handleDeleteCategory = async (id: number) => {
+  if (!window.confirm("Are you sure you want to delete this category?")) return;
+
+  try {
+    const res = await fetch(`${API_URL}/categories/${id}`, { method: "DELETE" });
+    const data = await res.json();
+    if (data.status === "success") {
+      fetchCategories(); // atnaujina sąrašą po ištrynimo
+      if (categoryId === id) setCategoryId(""); // nuvalo pasirinkimą, jei buvo pasirinkta ši kategorija
+    } else {
+      alert(data.error || "Failed to delete category");
+    }
+  } catch {
+    alert("Failed to connect to server");
+  }
+};
+
   if (loading) return <div className="auth-container"><p>Loading...</p></div>;
 
   return (
@@ -306,11 +323,11 @@ export default function ExpensesPage() {
         {error && <div style={{ background: "#f8d7da", color: "#721c24", padding: 12, borderRadius: 8, marginBottom: 16 }}>{error}</div>}
         {/* --- Grouping Info --- */}
         {expenses.length !== allExpenses.length && (
-          <div style={{ margin: "10px 0" }}>
-            Grouped by
-            {filterStartDate && <> date from {filterStartDate}</>}
-            {filterEndDate && <> to {filterEndDate}</>}
-            {filterCategoryId && <> , category: {categories.find(c => c.ID === filterCategoryId)?.Pavadinimas || "N/A"}</>}
+          <div style={{ margin: "10px 0", fontWeight: "bold" }}>
+            Filtered by:
+            {filterStartDate && <> |date from {filterStartDate}</>}
+            {filterEndDate && <> to {filterEndDate}|</>}
+            {filterCategoryId && <> |category: {categories.find(c => c.ID === filterCategoryId)?.Pavadinimas || "N/A"}|</>}
           </div>
         )}
 
@@ -367,7 +384,7 @@ export default function ExpensesPage() {
               style={{ marginBottom: "10px", height: "50px", width: "200px", fontSize: "16px" }}
               onClick={() => setIsCompareModalOpen(true)}
             >
-              Compare groups
+              Compare expenses
             </button>
 
             <button
@@ -567,7 +584,11 @@ export default function ExpensesPage() {
                 <button onClick={calculateCompareSums}>Compare</button>
               </div>
               {sum1 !== null && sum2 !== null && (
-                <p style={{ marginTop: 10 }}>Sum Group 1: {sum1} €<br />Sum Group 2: {sum2} €</p>
+                <p style={{ marginTop: 10, fontWeight: "bold", fontSize: "30px" }}>
+                  Group 1: {sum1} €<br />
+                  Group 2: {sum2} €<br />
+                  Difference: {sum1 - sum2} €
+                </p>
               )}
             </div>
           </div>
