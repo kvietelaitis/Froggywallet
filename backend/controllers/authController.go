@@ -155,10 +155,25 @@ func Register(c *fiber.Ctx) error {
 	if err := tx.Where("el_pastas = ? AND busena = ?", user.ElPastas, models.BusenaLaukiamas).
 		Find(&invites).Error; err == nil && len(invites) > 0 {
 
+		var role models.Role
+		if err := tx.Where("roles_pavadinimas = ?", "Member").First(&role).Error; err != nil {
+			tx.Rollback()
+			return c.Status(500).JSON(fiber.Map{"error": "failed to find default role"})
+		}
+
 		// Assign user to the first invited group
 		for _, inv := range invites {
 			if inv.GrupeID != nil {
-				user.GrupeID = inv.GrupeID
+				nrg := models.NarysRoleGrupe{
+					NarysID: user.ID,
+					RoleID:  role.ID,
+					GrupeID: *inv.GrupeID,
+				}
+
+				if err := tx.Create(&nrg).Error; err != nil {
+					tx.Rollback()
+					return c.Status(500).JSON(fiber.Map{"error": "failed to assign user to group with role"})
+				}
 				break
 			}
 		}
@@ -172,36 +187,6 @@ func Register(c *fiber.Ctx) error {
 				return c.Status(500).JSON(fiber.Map{"error": "failed to process invite"})
 			}
 		}
-
-		// Assign role based on whether user joined via invite
-		var role models.Role
-		if user.GrupeID != nil {
-			// Invited user gets Member role
-			if err := tx.FirstOrCreate(&role, models.Role{RolesPavadinimas: "Member"}).Error; err != nil {
-				tx.Rollback()
-				return c.Status(500).JSON(fiber.Map{"error": "failed to create role"})
-			}
-		} else {
-			// No valid group in invites, create personal group
-			group := models.Grupe{Pavadinimas: "Personal - " + user.VartotojoVardas}
-			if err := tx.Create(&group).Error; err != nil {
-				tx.Rollback()
-				return c.Status(500).JSON(fiber.Map{"error": "failed to create group"})
-			}
-			user.GrupeID = &group.ID
-
-			if err := tx.FirstOrCreate(&role, models.Role{RolesPavadinimas: "Admin"}).Error; err != nil {
-				tx.Rollback()
-				return c.Status(500).JSON(fiber.Map{"error": "failed to create role"})
-			}
-		}
-
-		user.RoleID = &role.ID
-		if err := tx.Save(&user).Error; err != nil {
-			tx.Rollback()
-			return c.Status(500).JSON(fiber.Map{"error": "failed to save user"})
-		}
-
 	} else {
 		// No invites: create personal group and admin role
 		group := models.Grupe{Pavadinimas: "Personal - " + user.VartotojoVardas}
@@ -216,11 +201,15 @@ func Register(c *fiber.Ctx) error {
 			return c.Status(500).JSON(fiber.Map{"error": "failed to create role"})
 		}
 
-		user.GrupeID = &group.ID
-		user.RoleID = &role.ID
-		if err := tx.Save(&user).Error; err != nil {
+		nrg := models.NarysRoleGrupe{
+			NarysID: user.ID,
+			GrupeID: *&group.ID,
+			RoleID:  role.ID,
+		}
+
+		if err := tx.Create(&nrg).Error; err != nil {
 			tx.Rollback()
-			return c.Status(500).JSON(fiber.Map{"error": "failed to save user"})
+			return c.Status(500).JSON(fiber.Map{"error": "failed to create group"})
 		}
 	}
 

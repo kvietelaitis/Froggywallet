@@ -9,7 +9,7 @@ import (
 type Paskola struct {
 	gorm.Model
 	ID                  uint      `gorm:"primaryKey"`
-	NarysID             uint      `gorm:"index"`    // User ID (optional, for filtering by user)
+	NarysID             uint      `gorm:"index"`
 	MokejimoKiekis      float64   `gorm:"not null"` // Payment amount
 	KitasMokejimas      time.Time `gorm:"not null"` // Next payment
 	PaskutinisMokejimas time.Time // Last payment
