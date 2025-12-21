@@ -189,7 +189,7 @@ func Register(c *fiber.Ctx) error {
 		}
 	} else {
 		// No invites: create personal group and admin role
-		group := models.Grupe{Pavadinimas: "Personal - " + user.VartotojoVardas}
+		group := models.Grupe{Pavadinimas: "Personal Group"}
 		if err := tx.Create(&group).Error; err != nil {
 			tx.Rollback()
 			return c.Status(500).JSON(fiber.Map{"error": "failed to create group"})
@@ -203,7 +203,7 @@ func Register(c *fiber.Ctx) error {
 
 		nrg := models.NarysRoleGrupe{
 			NarysID: user.ID,
-			GrupeID: *&group.ID,
+			GrupeID: group.ID,
 			RoleID:  role.ID,
 		}
 

@@ -10,6 +10,7 @@ type Paskola struct {
 	gorm.Model
 	ID                  uint      `gorm:"primaryKey"`
 	NarysID             uint      `gorm:"index"`
+	Narys               Narys     `gorm:"foreignKey:NarysID"`
 	MokejimoKiekis      float64   `gorm:"not null"` // Payment amount
 	KitasMokejimas      time.Time `gorm:"not null"` // Next payment
 	PaskutinisMokejimas time.Time // Last payment

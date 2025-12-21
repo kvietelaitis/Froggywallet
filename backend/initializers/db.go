@@ -25,6 +25,7 @@ func SyncDatabase() {
 		&models.Role{},
 		&models.Narys{},
 		&models.Grupe{},
+		&models.NarysRoleGrupe{},
 		&models.Sektorius{},
 
 		// Financial entities

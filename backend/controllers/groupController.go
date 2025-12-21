@@ -52,23 +52,53 @@ func GetUserGroups(c *fiber.Ctx) error {
 		}
 	}
 
-	var user models.Narys
-
-	// preload group and its members, then return []Grupe
-	if err := initializers.DB.Preload("Grupe").Preload("Grupe.Nariai").Preload("Role").First(&user, id).Error; err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "user not found"})
+	var nrgList []models.NarysRoleGrupe
+	if err := initializers.DB.
+		Where("narys_id = ?", id).
+		Preload("Grupe").
+		Preload("Role").
+		Find(&nrgList).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "information not found"})
 	}
 
-	currentUserRole := ""
-	if user.Role.RolesPavadinimas != "" {
-		currentUserRole = user.Role.RolesPavadinimas
+	groups := make([]fiber.Map, 0, len(nrgList))
+
+	for _, nrg := range nrgList {
+		group := nrg.Grupe
+
+		// For each group, get all members
+		var groupMembers []models.NarysRoleGrupe
+		if err := initializers.DB.
+			Where("grupe_id = ?", group.ID).
+			Preload("Narys").
+			Preload("Role").
+			Find(&groupMembers).Error; err != nil {
+			continue // skip this group if error
+		}
+
+		members := make([]fiber.Map, 0, len(groupMembers))
+		for _, gm := range groupMembers {
+			members = append(members, fiber.Map{
+				"id":       gm.Narys.ID,
+				"name":     gm.Narys.Vardas,
+				"username": gm.Narys.VartotojoVardas,
+				"email":    gm.Narys.ElPastas,
+				"role":     gm.Role.RolesPavadinimas,
+			})
+		}
+
+		isAdmin := nrg.Role.RolesPavadinimas == "Admin" || nrg.Role.RolesPavadinimas == "Administratorius"
+		groups = append(groups, fiber.Map{
+			"id":          group.ID,
+			"name":        group.Pavadinimas,
+			"description": group.Aprasymas,
+			"role":        nrg.Role.RolesPavadinimas,
+			"isAdmin":     isAdmin,
+			"members":     members,
+		})
 	}
 
-	if user.GrupeID == nil {
-		return c.JSON(fiber.Map{"status": "success", "data": []models.Grupe{}})
-	}
-
-	return c.JSON(fiber.Map{"status": "success", "data": []models.Grupe{user.Grupe}, "currentUserRole": currentUserRole})
+	return c.JSON(fiber.Map{"status": "success", "data": fiber.Map{"groups": groups}})
 }
 
 func GetGroup(c *fiber.Ctx) error {
@@ -79,33 +109,38 @@ func GetGroup(c *fiber.Ctx) error {
 	}
 
 	userLoc := c.Locals("userID")
-	var currentUserRole string
+	var userID uint
 	if userLoc != nil {
-		userID := userLoc.(uint)
-		var user models.Narys
-		if err := initializers.DB.Preload("Role").First(&user, userID).Error; err == nil {
-			currentUserRole = user.Role.RolesPavadinimas
-		}
+		userID = userLoc.(uint)
 	}
 
-	currentUserId := uint(0)
-	if userLoc != nil {
-		currentUserId = userLoc.(uint)
+	// Find the user's role in this group
+	var nrg models.NarysRoleGrupe
+	if err := initializers.DB.
+		Where("narys_id = ? AND grupe_id = ?", userID, uint(id64)).
+		Preload("Role").
+		First(&nrg).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "relation not found"})
 	}
+	currentUserRole := nrg.Role.RolesPavadinimas
 
+	// Load group with members via join table
 	var group models.Grupe
-	if err := initializers.DB.Preload("Nariai.Role").First(&group, uint(id64)).Error; err != nil {
+	if err := initializers.DB.
+		Preload("NarysRoleGrupe.Narys").
+		Preload("NarysRoleGrupe.Role").
+		First(&group, uint(id64)).Error; err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "group not found"})
 	}
 
-	members := make([]fiber.Map, 0, len(group.Nariai))
-	for _, m := range group.Nariai {
+	members := make([]fiber.Map, 0, len(group.NarysRoleGrupe))
+	for _, nrg := range group.NarysRoleGrupe {
 		members = append(members, fiber.Map{
-			"id":       m.ID,
-			"name":     m.Vardas,
-			"username": m.VartotojoVardas,
-			"email":    m.ElPastas,
-			"role":     m.Role.RolesPavadinimas,
+			"id":       nrg.Narys.ID,
+			"name":     nrg.Narys.Vardas,
+			"username": nrg.Narys.VartotojoVardas,
+			"email":    nrg.Narys.ElPastas,
+			"role":     nrg.Role.RolesPavadinimas,
 		})
 	}
 
@@ -115,7 +150,7 @@ func GetGroup(c *fiber.Ctx) error {
 		"description":     group.Aprasymas,
 		"members":         members,
 		"currentUserRole": currentUserRole,
-		"currentUserId":   currentUserId,
+		"currentUserId":   userID,
 	}
 
 	return c.JSON(fiber.Map{"status": "success", "data": dto})
@@ -139,19 +174,18 @@ func UpdateGroup(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
 	}
 
-	// load user to verify membership (and optional role)
-	var user models.Narys
-	if err := initializers.DB.Preload("Role").First(&user, userID).Error; err != nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "user not found"})
+	var nrg models.NarysRoleGrupe
+	if err := initializers.DB.
+		Where("narys_id = ? AND grupe_id = ?", userID, uint(id64)).
+		Preload("Role").
+		First(&nrg).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "relation not found"})
 	}
 
-	if user.Role.RolesPavadinimas != "Administratorius" && user.Role.RolesPavadinimas != "Admin" {
+	isAdmin := nrg.Role.RolesPavadinimas == "Admin" || nrg.Role.RolesPavadinimas == "Administratorius"
+
+	if !isAdmin {
 		return c.Status(403).JSON(fiber.Map{"error": "Admin required"})
-	}
-
-	// require user belongs to the group (or extend with role check if desired)
-	if user.GrupeID == nil || *user.GrupeID != groupID {
-		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "not allowed to update this group"})
 	}
 
 	// parse body (support Lithuanian and English keys)
@@ -182,17 +216,14 @@ func UpdateGroup(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "could not update group"})
 	}
 
-	// return normalized DTO (with members)
-	if err := initializers.DB.Preload("Nariai").First(&group, group.ID).Error; err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "could not reload group"})
-	}
-	members := make([]fiber.Map, 0, len(group.Nariai))
-	for _, m := range group.Nariai {
+	members := make([]fiber.Map, 0, len(group.NarysRoleGrupe))
+	for _, nrg := range group.NarysRoleGrupe {
 		members = append(members, fiber.Map{
-			"id":       m.ID,
-			"name":     m.Vardas,
-			"username": m.VartotojoVardas,
-			"email":    m.ElPastas,
+			"id":       nrg.Narys.ID,
+			"name":     nrg.Narys.Vardas,
+			"username": nrg.Narys.VartotojoVardas,
+			"email":    nrg.Narys.ElPastas,
+			"role":     nrg.Role.RolesPavadinimas,
 		})
 	}
 
@@ -222,18 +253,17 @@ func CreateInvite(c *fiber.Ctx) error {
 
 	senderID := uidLoc.(uint)
 
-	var sender models.Narys
-	if err := initializers.DB.Preload("Role").First(&sender, senderID).Error; err != nil {
-		return c.Status(401).JSON(fiber.Map{
-			"error": "User not found",
-		})
+	var nrg models.NarysRoleGrupe
+	if err := initializers.DB.
+		Where("narys_id = ? AND grupe_id = ?", senderID, uint(groupID)).
+		Preload("Role").
+		First(&nrg).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "relation not found"})
 	}
 
-	if sender.GrupeID == nil || *sender.GrupeID != groupID {
-		return c.Status(403).JSON(fiber.Map{"error": "Not a member"})
-	}
+	isAdmin := nrg.Role.RolesPavadinimas == "Admin" || nrg.Role.RolesPavadinimas == "Administratorius"
 
-	if sender.Role.RolesPavadinimas != "Administratorius" && sender.Role.RolesPavadinimas != "Admin" {
+	if !isAdmin {
 		return c.Status(403).JSON(fiber.Map{"error": "Admin required"})
 	}
 
@@ -253,6 +283,32 @@ func CreateInvite(c *fiber.Ctx) error {
 		return c.Status(400).JSON(fiber.Map{
 			"error": "Email required",
 		})
+	}
+
+	var role models.Role
+	if err := initializers.DB.Where("roles_pavadinimas = ?", "Member").First(&role).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "failed to find default role"})
+	}
+
+	var user models.Narys
+	if err := initializers.DB.Where("el_pastas = ?", body.Email).First(&user).Error; err == nil {
+		// User exists, check if already in group
+		var nrg models.NarysRoleGrupe
+		if err := initializers.DB.Where("narys_id = ? AND grupe_id = ?", user.ID, groupID).First(&nrg).Error; err == nil {
+			// Already a member
+			return c.Status(400).JSON(fiber.Map{"error": "User is already a member of this group"})
+		}
+		// Not a member, add to group
+		nrg = models.NarysRoleGrupe{
+			NarysID: user.ID,
+			GrupeID: groupID,
+			RoleID:  role.ID, // assign appropriate role
+		}
+		if err := initializers.DB.Create(&nrg).Error; err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": "Failed to add user to group"})
+		}
+		// Optionally notify user
+		return c.JSON(fiber.Map{"status": "success", "message": "User added to group"})
 	}
 
 	var existing models.Pakvietimas
@@ -315,11 +371,19 @@ func UpdateMemberRole(c *fiber.Ctx) error {
 	if err := initializers.DB.Preload("Role").First(&requester, requesterID).Error; err != nil {
 		return c.Status(401).JSON(fiber.Map{"error": "user not found"})
 	}
-	if requester.GrupeID == nil || *requester.GrupeID != groupID {
-		return c.Status(403).JSON(fiber.Map{"error": "not a member"})
+
+	var nrg models.NarysRoleGrupe
+	if err := initializers.DB.
+		Where("narys_id = ? AND grupe_id = ?", requesterID, uint(groupID)).
+		Preload("Role").
+		First(&nrg).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "relation not found"})
 	}
-	if requester.Role.RolesPavadinimas != "Admin" && requester.Role.RolesPavadinimas != "Administratorius" {
-		return c.Status(403).JSON(fiber.Map{"error": "admin required"})
+
+	isAdmin := nrg.Role.RolesPavadinimas == "Admin" || nrg.Role.RolesPavadinimas == "Administratorius"
+
+	if !isAdmin {
+		return c.Status(403).JSON(fiber.Map{"error": "Admin required"})
 	}
 
 	var body UpdateMemberRoleRequest
@@ -332,17 +396,21 @@ func UpdateMemberRole(c *fiber.Ctx) error {
 	if err := initializers.DB.First(&member, memberID).Error; err != nil {
 		return c.Status(404).JSON(fiber.Map{"error": "member not found"})
 	}
-	if member.GrupeID == nil || *member.GrupeID != groupID {
+
+	var nrg_of_member models.NarysRoleGrupe
+	if err := initializers.DB.
+		Where("narys_id = ? AND grupe_id = ?", memberID, groupID).
+		First(&nrg_of_member).Error; err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": "user not in this group"})
 	}
 
 	// find or create role
 	var role models.Role
-	if err := initializers.DB.FirstOrCreate(&role, models.Role{RolesPavadinimas: body.RoleName}).Error; err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": "failed to get role"})
+	if err := initializers.DB.Where("roles_pavadinimas = ?", body.RoleName).First(&role).Error; err != nil {
+		return c.Status(404).JSON(fiber.Map{"error": "role not found"})
 	}
 
-	member.RoleID = &role.ID
+	nrg.RoleID = role.ID
 	if err := initializers.DB.Save(&member).Error; err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "failed to update member"})
 	}
@@ -362,16 +430,18 @@ func RemoveMember(c *fiber.Ctx) error {
 	}
 	requesterID := uidLoc.(uint)
 
-	// verify requester is admin
-	var requester models.Narys
-	if err := initializers.DB.Preload("Role").First(&requester, requesterID).Error; err != nil {
-		return c.Status(401).JSON(fiber.Map{"error": "user not found"})
+	var nrg models.NarysRoleGrupe
+	if err := initializers.DB.
+		Where("narys_id = ? AND grupe_id = ?", requesterID, uint(groupID)).
+		Preload("Role").
+		First(&nrg).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "relation not found"})
 	}
-	if requester.GrupeID == nil || *requester.GrupeID != groupID {
-		return c.Status(403).JSON(fiber.Map{"error": "not a member"})
-	}
-	if requester.Role.RolesPavadinimas != "Admin" && requester.Role.RolesPavadinimas != "Administratorius" {
-		return c.Status(403).JSON(fiber.Map{"error": "admin required"})
+
+	isAdmin := nrg.Role.RolesPavadinimas == "Admin" || nrg.Role.RolesPavadinimas == "Administratorius"
+
+	if !isAdmin {
+		return c.Status(403).JSON(fiber.Map{"error": "Admin required"})
 	}
 
 	// prevent self-removal if only admin (optional safeguard)
@@ -379,20 +449,15 @@ func RemoveMember(c *fiber.Ctx) error {
 		return c.Status(400).JSON(fiber.Map{"error": "cannot remove yourself"})
 	}
 
-	// find target
-	var member models.Narys
-	if err := initializers.DB.First(&member, memberID).Error; err != nil {
-		return c.Status(404).JSON(fiber.Map{"error": "member not found"})
-	}
-	if member.GrupeID == nil || *member.GrupeID != groupID {
+	var nrg_of_member models.NarysRoleGrupe
+	if err := initializers.DB.
+		Where("narys_id = ? AND grupe_id = ?", memberID, groupID).
+		First(&nrg_of_member).Error; err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": "user not in this group"})
 	}
 
-	// remove from group (set GrupeID to nil)
-	member.GrupeID = nil
-	member.RoleID = nil
-	if err := initializers.DB.Save(&member).Error; err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": "failed to remove member"})
+	if err := initializers.DB.Delete(&nrg).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "failed to remove member from group"})
 	}
 
 	return c.JSON(fiber.Map{"status": "success", "message": "member removed"})
