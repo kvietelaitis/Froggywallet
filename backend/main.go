@@ -77,10 +77,12 @@ func main() {
 	groups := api.Group("/groups", middleware.RequireAuth)
 	groups.Get("/:id", controllers.GetUserGroups)
 	groups.Get("/info/:id", controllers.GetGroup)
+	groups.Post("/create-group", controllers.CreateGroup)
 	groups.Put("/change-info/:id", controllers.UpdateGroup)
 	groups.Post("/:id/invite", controllers.CreateInvite)
 	groups.Put("/:groupId/members/:memberId/role", controllers.UpdateMemberRole)
 	groups.Delete("/:groupId/members/:memberId", controllers.RemoveMember)
+	groups.Delete("/:id", controllers.DeleteGroup)
 
 	user := api.Group("/user", middleware.RequireAuth)
 	user.Put("/change-info/:id", controllers.ChangeUserInfo)
