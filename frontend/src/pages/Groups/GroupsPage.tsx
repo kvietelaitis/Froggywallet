@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import EditGroupModal from '../../_components/Groups/EditGroupModal';
 import InviteMemberModal from "../../_components/Groups/InviteMemberModal";
+import CreateGroupModal from '../../_components/Groups/CreateGroupModal';
+import DeleteGroupModal from '../../_components/Groups/DeleteGroupModal';
 
 type Group = {
     id: string;
@@ -20,6 +22,8 @@ export default function GroupsPage(){
     const navigate = useNavigate();
 
     const [openGroupInfo, setOpenGroup] = useState(false);
+    const [openGroupCreation, setCreateGroup] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     useEffect(() => {
         (async () => {
@@ -77,14 +81,70 @@ export default function GroupsPage(){
         }
     }
 
+    const deleteGroup = async (groupId: string) => {
+        try {
+            setGroupsLoading(true);
+            const response = await fetch(`/api/groups/${groupId}`, {
+                method: 'DELETE',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if(response.ok) {
+                fetchGroups();
+            }
+        } catch (err) {
+            setError("Failed to delete group");
+        } finally {
+            setGroupsLoading(false);
+        }
+    }
+
     return (
         <div>
-        <h1>Groups</h1>
+        <div
+            style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 16,
+                minHeight: 48 // matches h1 height for alignment
+            }}
+        >
+            <h1 style={{ margin: 0, fontSize: 28, lineHeight: '40px' }}>Groups</h1>
+            <button
+                onClick={() => setCreateGroup(true)}
+                style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: '50%',
+                    color: 'white',
+                    border: 'none',
+                    fontWeight: 700,
+                    fontSize: 22,
+                    lineHeight: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    marginLeft: 12,
+                    padding: 0,
+                }}
+                aria-label="Create Group"
+            >
+                +
+            </button>
+        </div>
+
+        <CreateGroupModal open={openGroupCreation} onClose={() => setCreateGroup(false)} onCreated={() => {
+            setCreateGroup(false);
+            fetchGroups();
+        }} />
 
         {groupsLoading && <p>Loading groups...</p>}
         {error && <p style={{ color: 'red' }}>Error: {error}</p>}
-
-        <p style={{ marginBottom: '1rem' }}>Your groups are listed below.</p>
 
         {groups.length === 0 && !groupsLoading ? (
             <div style={{ padding: 12, borderRadius: 8, background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
@@ -104,7 +164,10 @@ export default function GroupsPage(){
                     <div style={{ marginLeft: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <button onClick={() => setOpenGroup(true)} style={{ padding: '6px 10px' }}>Open</button>
                     {(g.isAdmin) && (
-                        <button onClick={() => setShowInvite(true)} style={{ padding: '6px 10px' }}>Invite Member</button>
+                        <>
+                            <button onClick={() => setShowInvite(true)} style={{ padding: '6px 10px' }}>Invite Member</button>
+                            <button onClick={() => setShowDeleteModal(true)} style={{ padding: '6px 10px' }}>Delete Group</button>
+                        </>
                     )}
                     </div>
 
@@ -113,6 +176,14 @@ export default function GroupsPage(){
                         groupId={g.id || ""}
                         onClose={() => setShowInvite(false)}
                         onInvited={() => {}}
+                    />
+
+                    <DeleteGroupModal
+                        open={showDeleteModal}
+                        onClose={() => setShowDeleteModal(false)}
+                        groupId={g.id}
+                        groupName={g.name}
+                        onDelete={deleteGroup}
                     />
                 </div>
 

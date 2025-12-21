@@ -12,6 +12,13 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+type GroupCreationRequest struct {
+	Pavadinimas string `json:"pavadinimas"`
+	Aprasymas   string `json:"aprasymas"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
 type UpdateGroupRequest struct {
 	Pavadinimas string `json:"pavadinimas"`
 	Aprasymas   string `json:"aprasymas"`
@@ -29,25 +36,144 @@ func generateToken() string {
 	return hex.EncodeToString(b)
 }
 
-func GetUserGroups(c *fiber.Ctx) error {
-	idParam := c.Params("id")
-	if idParam == "" {
+func CreateGroup(c *fiber.Ctx) error {
+	userLoc := c.Locals("userID")
+	if userLoc == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
+	}
+
+	userID, ok := userLoc.(uint)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
+	}
+
+	var body GroupCreationRequest
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid body"})
+	}
+
+	name := body.Pavadinimas
+	if name == "" {
+		name = body.Name
+	}
+	description := body.Aprasymas
+	if description == "" {
+		description = body.Description
+	}
+	if name == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Group name required"})
+	}
+
+	group := models.Grupe{
+		Pavadinimas: name,
+		Aprasymas:   description,
+	}
+
+	if err := initializers.DB.Create(&group).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "failed to create group"})
+	}
+
+	var role models.Role
+	if err := initializers.DB.Where("roles_pavadinimas = ?", "Admin").First(&role).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "failed to find admin role"})
+	}
+
+	nrg := models.NarysRoleGrupe{
+		NarysID: userID,
+		RoleID:  role.ID,
+		GrupeID: group.ID,
+	}
+
+	if err := initializers.DB.Create(&nrg).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "failed to create group"})
+	}
+
+	return c.JSON(fiber.Map{
+		"status": "success",
+		"data": fiber.Map{
+			"id":          group.ID,
+			"name":        group.Pavadinimas,
+			"description": group.Aprasymas,
+		},
+	})
+}
+
+func DeleteGroup(c *fiber.Ctx) error {
+	idparam := c.Params("id")
+	if idparam == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Missing user id",
+			"error": "missing user id",
 		})
 	}
 
-	id64, err := strconv.ParseUint(idParam, 10, 64)
+	id64, err := strconv.ParseUint(idparam, 10, 64)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid id parameter"})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid id parameter"})
 	}
 
 	id := uint(id64)
 
-	if auth := c.Locals("userID"); auth != nil {
-		if authID, ok := auth.(uint); ok {
-			if authID != id {
-				return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Cannot update other user"})
+	auth := c.Locals("userID")
+	if auth == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
+	}
+	userID, ok := auth.(uint)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
+	}
+
+	var nrg models.NarysRoleGrupe
+	if err := initializers.DB.
+		Where("narys_id = ? AND grupe_id = ?", userID, uint(id)).
+		Preload("Role").
+		First(&nrg).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "relation not found"})
+	}
+
+	isAdmin := nrg.Role.RolesPavadinimas == "Admin" || nrg.Role.RolesPavadinimas == "Administratorius"
+
+	if !isAdmin {
+		return c.Status(403).JSON(fiber.Map{"error": "Admin required"})
+	}
+
+	if err := initializers.DB.Where("grupe_id = ?", id).Delete(&models.NarysRoleGrupe{}).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "failed to delete group memberships"})
+	}
+
+	if err := initializers.DB.Where("grupe_id = ?", id).Delete(&models.Pakvietimas{}).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "failed to delete group invites"})
+	}
+
+	if err := initializers.DB.Delete(&models.Grupe{}, id).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "failed to delete group"})
+	}
+
+	return c.JSON(fiber.Map{
+		"status:": "success",
+		"message": "Group Deleted",
+	})
+
+}
+
+func GetUserGroups(c *fiber.Ctx) error {
+	idparam := c.Params("id")
+	if idparam == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "missing user id",
+		})
+	}
+
+	id64, err := strconv.ParseUint(idparam, 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid id parameter"})
+	}
+
+	id := uint(id64)
+
+	if auth := c.Locals("userid"); auth != nil {
+		if authid, ok := auth.(uint); ok {
+			if authid != id {
+				return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "cannot update other user"})
 			}
 		}
 	}
