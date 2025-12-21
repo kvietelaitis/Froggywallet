@@ -1,29 +1,53 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUser } from '../../_components/Users/UserProvider';
+import EditGroupModal from '../../_components/Groups/EditGroupModal';
+import InviteMemberModal from "../../_components/Groups/InviteMemberModal";
+import CreateGroupModal from '../../_components/Groups/CreateGroupModal';
+import DeleteGroupModal from '../../_components/Groups/DeleteGroupModal';
 
 type Group = {
     id: string;
     name: string;
     members: string[];
+    isAdmin: boolean;
 }
 
 export default function GroupsPage(){
-    const { user, loading: userLoading, refresh } = useUser();
+    const [user, setUser] = useState<any>(null);
     const [groups, setGroups] = useState<Group[]>([])
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(true);
     const [groupsLoading, setGroupsLoading] = useState(false);
+    const [showInvite, setShowInvite] = useState(false);
     const navigate = useNavigate();
 
-    useEffect(() => {
-        if(userLoading) return;
-        if(!user) {
-            setGroups([]);
-            return;
-        }
+    const [openGroupInfo, setOpenGroup] = useState(false);
+    const [openGroupCreation, setCreateGroup] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-        fetchGroups();
-    }, [user, userLoading])
+    useEffect(() => {
+        (async () => {
+            try {
+                const res = await fetch("/api/me", { credentials: "include" });
+                if (!res.ok) throw new Error("Failed to load user");
+                const json = await res.json();
+                setUser(json.data);
+            } catch (err) {
+                setError("Unable to load user");
+            } finally {
+                setLoading(false);
+            }
+        })();
+    }, []);
+
+    useEffect(() => {
+    if (loading) return;
+    if (!user) {
+        setGroups([]);
+        return;
+    }
+    fetchGroups();
+    }, [user, loading]);
 
     const fetchGroups = async () => {
         try {
@@ -38,7 +62,17 @@ export default function GroupsPage(){
 
            if (response.ok) {
             const json = await response.json();
-            setGroups(json.data || []);
+            let data = json.data.groups ?? [];
+            if (!Array.isArray(data)) data = [data];
+
+            const mapped = data.map((g: any) => ({
+            id: String(g.ID ?? g.id ?? ''),
+            name: g.Pavadinimas ?? g.name ?? '',
+            members: (g.members ?? []).map((m: any) => m.name ?? m.vardas ?? m.username ?? m.email ?? ''),
+            role: g.role ?? '',
+            isAdmin: !!g.isAdmin,
+            }));
+            setGroups(mapped);
            }
         } catch (err) {
             setError("Network error");
@@ -47,30 +81,77 @@ export default function GroupsPage(){
         }
     }
 
-    const openGroup = (id: string) => {
-        navigate(`edit-group/${id}`);
-    };
+    const deleteGroup = async (groupId: string) => {
+        try {
+            setGroupsLoading(true);
+            const response = await fetch(`/api/groups/${groupId}`, {
+                method: 'DELETE',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if(response.ok) {
+                fetchGroups();
+            }
+        } catch (err) {
+            setError("Failed to delete group");
+        } finally {
+            setGroupsLoading(false);
+        }
+    }
 
     return (
         <div>
-        <h1>Groups</h1>
+        <div
+            style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 16,
+                minHeight: 48 // matches h1 height for alignment
+            }}
+        >
+            <h1 style={{ margin: 0, fontSize: 28, lineHeight: '40px' }}>Groups</h1>
+            <button
+                onClick={() => setCreateGroup(true)}
+                style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: '50%',
+                    color: 'white',
+                    border: 'none',
+                    fontWeight: 700,
+                    fontSize: 22,
+                    lineHeight: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    marginLeft: 12,
+                    padding: 0,
+                }}
+                aria-label="Create Group"
+            >
+                +
+            </button>
+        </div>
+
+        <CreateGroupModal open={openGroupCreation} onClose={() => setCreateGroup(false)} onCreated={() => {
+            setCreateGroup(false);
+            fetchGroups();
+        }} />
 
         {groupsLoading && <p>Loading groups...</p>}
         {error && <p style={{ color: 'red' }}>Error: {error}</p>}
-
-        <div style={{ margin: '1rem 0' }}>
-            <button onClick={() => navigate('create-group')}>Create Group</button>
-            <button style={{ marginLeft: 8 }} onClick={() => navigate('edit-group')}>Existing Group</button>
-        </div>
-
-        <p style={{ marginBottom: '1rem' }}>Your groups are listed below.</p>
 
         {groups.length === 0 && !groupsLoading ? (
             <div style={{ padding: 12, borderRadius: 8, background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
             <p style={{ margin: 0, color: 'var(--text-secondary)' }}>You are not a member of any groups yet.</p>
             </div>
         ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(500px, 1fr))', gap: 12 }}>
             {groups.map((g) => (
                 <div key={g.id} className="card" style={{ padding: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
@@ -80,9 +161,30 @@ export default function GroupsPage(){
                         {g.members?.length ?? 0} member{(g.members?.length ?? 0) !== 1 ? 's' : ''}
                     </p>
                     </div>
-                    <div style={{ marginLeft: 12 }}>
-                    <button onClick={() => openGroup(g.id)} style={{ padding: '6px 10px' }}>Open</button>
+                    <div style={{ marginLeft: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <button onClick={() => setOpenGroup(true)} style={{ padding: '6px 10px' }}>Open</button>
+                    {(g.isAdmin) && (
+                        <>
+                            <button onClick={() => setShowInvite(true)} style={{ padding: '6px 10px' }}>Invite Member</button>
+                            <button onClick={() => setShowDeleteModal(true)} style={{ padding: '6px 10px' }}>Delete Group</button>
+                        </>
+                    )}
                     </div>
+
+                    <InviteMemberModal
+                        open={showInvite}
+                        groupId={g.id || ""}
+                        onClose={() => setShowInvite(false)}
+                        onInvited={() => {}}
+                    />
+
+                    <DeleteGroupModal
+                        open={showDeleteModal}
+                        onClose={() => setShowDeleteModal(false)}
+                        groupId={g.id}
+                        groupName={g.name}
+                        onDelete={deleteGroup}
+                    />
                 </div>
 
                 {g.members && g.members.length > 0 && (
@@ -96,6 +198,9 @@ export default function GroupsPage(){
                     </ul>
                     </div>
                 )}
+
+                <EditGroupModal open={openGroupInfo} groupId={g.id} onClose={() => setOpenGroup(false)} onUpdated={() => { /* refresh if needed */ }} />
+
                 </div>
             ))}
             </div>

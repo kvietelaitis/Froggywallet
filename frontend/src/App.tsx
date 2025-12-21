@@ -23,9 +23,9 @@ const menuItems: MenuItem[] = [
     { title: 'Income', path: '/income' },
     { title: 'Budget', path: '/budget' },
     { title: 'Expenses', path: '/expenses' },
+    { title: 'Investments', path: '/investments' },
     { title: 'Loans', path: '/loan' },
     { title: 'Groups', path: '/groups' },
-    { title: 'Investments', path: '/investments' },
     { title: 'Settings', path: '/settings' },
 ];
 

@@ -69,6 +69,8 @@ export default function ExpensesPage() {
   const [categoryModalError, setCategoryModalError] = useState<string | null>(null);
   const [categoryModalLoading, setCategoryModalLoading] = useState(false);
 
+  const [summaryPeriod, setSummaryPeriod] = useState<"week" | "month" | "year" | "all">("all");
+
   useEffect(() => {
     const stored = localStorage.getItem("acknowledgedExpenses");
     if (stored) setAcknowledgedExpenses(new Set(JSON.parse(stored)));
@@ -297,6 +299,44 @@ export default function ExpensesPage() {
     setModalError(null);
   };
 
+  const calculateSummary = () => {
+    const now = new Date();
+
+    return allExpenses
+      .filter((e) => {
+        const d = new Date(e.Data);
+
+        if (summaryPeriod === "week") {
+          const startOfWeek = new Date(now);
+          startOfWeek.setDate(now.getDate() - now.getDay());
+          startOfWeek.setHours(0, 0, 0, 0);
+          return d >= startOfWeek;
+        }
+
+        if (summaryPeriod === "month") {
+          return (
+            d.getMonth() === now.getMonth() &&
+            d.getFullYear() === now.getFullYear()
+          );
+        }
+
+        if (summaryPeriod === "year") {
+          return d.getFullYear() === now.getFullYear();
+        }
+
+        return true; // all time
+      })
+      .reduce((sum, e) => sum + e.Suma, 0);
+  };
+
+  const periodLabel: Record<typeof summaryPeriod, string> = {
+    week: "This week",
+    month: "This month",
+    year: "This year",
+    all: "All time",
+  };
+
+
   if (loading) return <div className="auth-container"><p>Loading...</p></div>;
 
   return (
@@ -304,6 +344,87 @@ export default function ExpensesPage() {
       <div style={{ maxWidth: 900, margin: "20px auto", width: "100%", textAlign: "center" }}>
         <h1>Expenses</h1>
         {error && <div style={{ background: "#f8d7da", color: "#721c24", padding: 12, borderRadius: 8, marginBottom: 16 }}>{error}</div>}
+        
+
+        <div
+          style={{
+            background: "var(--bg-card)",
+            border: "1px solid var(--border)",
+            borderRadius: "16px",
+            padding: "10px",
+            margin: "0 auto 20px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "16px",
+            textAlign: "center",
+            maxWidth: "400px",
+          }}
+        >
+          <div style={{ flex: 1 }}></div>
+          <div style={{ flex: 30 }}>
+            <h3 style={{ margin: 0, opacity: 0.8, height: "20px", lineHeight: "10px" }}>{periodLabel[summaryPeriod]}</h3>
+            <div style={{ fontSize: "32px", fontWeight: "bold" }}>
+              {calculateSummary().toFixed(2)} €
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", flexDirection: "column", marginLeft: "auto" }}>
+            <button
+              style={{
+                padding: "4px 10px",
+                fontSize: "12px",
+                height: "28px",
+                borderRadius: "8px",
+                width: "90px",
+              }}
+              onClick={() => setSummaryPeriod("week")}
+            >
+              This week
+            </button>
+
+            <button
+              style={{
+                padding: "4px 10px",
+                fontSize: "12px",
+                height: "28px",
+                borderRadius: "8px",
+                width: "90px",
+              }}
+              onClick={() => setSummaryPeriod("month")}
+            >
+              This month
+            </button>
+
+            <button
+              style={{
+                padding: "4px 10px",
+                fontSize: "12px",
+                height: "28px",
+                borderRadius: "8px",
+                width: "90px",
+              }}
+              onClick={() => setSummaryPeriod("year")}
+            >
+              This year
+            </button>
+
+            <button
+              style={{
+                padding: "4px 10px",
+                fontSize: "12px",
+                height: "28px",
+                borderRadius: "8px",
+                width: "90px",
+              }}
+              onClick={() => setSummaryPeriod("all")}
+            >
+              All time
+            </button>
+          </div>
+        </div>
+
         {/* --- Grouping Info --- */}
         {expenses.length !== allExpenses.length && (
           <div style={{ margin: "10px 0", fontWeight: "bold" }}>
@@ -313,6 +434,7 @@ export default function ExpensesPage() {
             {filterCategoryId && <> |category: {categories.find(c => c.ID === filterCategoryId)?.Pavadinimas || "N/A"}|</>}
           </div>
         )}
+
 
         <table style={{ whiteSpace: "nowrap", width: "100%", marginBottom: "20px", textAlign: "left", borderCollapse: "separate", borderSpacing: "30px 8px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "12px" }}>
           <thead>

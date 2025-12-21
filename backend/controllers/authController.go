@@ -150,41 +150,67 @@ func Register(c *fiber.Ctx) error {
 		})
 	}
 
-	group := models.Grupe{
-		Pavadinimas: "Personal",
-		Aprasymas:   "A personal started group for the user",
-	}
+	// Check for pending invites
+	var invites []models.Pakvietimas
+	if err := tx.Where("el_pastas = ? AND busena = ?", user.ElPastas, models.BusenaLaukiamas).
+		Find(&invites).Error; err == nil && len(invites) > 0 {
 
-	if err := tx.Create(&group).Error; err != nil {
-		tx.Rollback()
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Nepavyko sukurti grupes",
-		})
-	}
+		var role models.Role
+		if err := tx.Where("roles_pavadinimas = ?", "Member").First(&role).Error; err != nil {
+			tx.Rollback()
+			return c.Status(500).JSON(fiber.Map{"error": "failed to find default role"})
+		}
 
-	if err := tx.Model(&group).Association("Nariai").Append(&user); err != nil {
-		tx.Rollback()
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Nepavyko pridėti vartotojo prie grupės",
-		})
-	}
+		// Assign user to the first invited group
+		for _, inv := range invites {
+			if inv.GrupeID != nil {
+				nrg := models.NarysRoleGrupe{
+					NarysID: user.ID,
+					RoleID:  role.ID,
+					GrupeID: *inv.GrupeID,
+				}
 
-	role := models.Role{
-		RolesPavadinimas: "Administratorius",
-	}
+				if err := tx.Create(&nrg).Error; err != nil {
+					tx.Rollback()
+					return c.Status(500).JSON(fiber.Map{"error": "failed to assign user to group with role"})
+				}
+				break
+			}
+		}
 
-	if err := tx.Create(&role).Error; err != nil {
-		tx.Rollback()
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Nepavyko sukurti roles",
-		})
-	}
+		// Mark all invites as accepted
+		for i := range invites {
+			invites[i].PakvietePriimeID = &user.ID
+			invites[i].Busena = models.BusenaPatvirtintas
+			if err := tx.Save(&invites[i]).Error; err != nil {
+				tx.Rollback()
+				return c.Status(500).JSON(fiber.Map{"error": "failed to process invite"})
+			}
+		}
+	} else {
+		// No invites: create personal group and admin role
+		group := models.Grupe{Pavadinimas: "Personal Group"}
+		if err := tx.Create(&group).Error; err != nil {
+			tx.Rollback()
+			return c.Status(500).JSON(fiber.Map{"error": "failed to create group"})
+		}
 
-	if err := tx.Model(&role).Association("Nariai").Append(&user); err != nil {
-		tx.Rollback()
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Nepavyko pridėti vartotojo prie grupės",
-		})
+		role := models.Role{}
+		if err := tx.FirstOrCreate(&role, models.Role{RolesPavadinimas: "Admin"}).Error; err != nil {
+			tx.Rollback()
+			return c.Status(500).JSON(fiber.Map{"error": "failed to create role"})
+		}
+
+		nrg := models.NarysRoleGrupe{
+			NarysID: user.ID,
+			GrupeID: group.ID,
+			RoleID:  role.ID,
+		}
+
+		if err := tx.Create(&nrg).Error; err != nil {
+			tx.Rollback()
+			return c.Status(500).JSON(fiber.Map{"error": "failed to create group"})
+		}
 	}
 
 	if err := tx.Commit().Error; err != nil {
