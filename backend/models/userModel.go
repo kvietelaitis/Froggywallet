@@ -14,13 +14,15 @@ type Narys struct {
 	TwoFactorSecret  string `json:"-"`
 	TwoFactorEnabled bool   `gorm:"default:false"`
 
-	RoleID *uint
-	Role   Role `gorm:"foreignKey:RoleID"`
+	/* 	RoleID *uint
+	   	Role   Role `gorm:"foreignKey:RoleID"`
 
-	GrupeID *uint
-	Grupe   Grupe `gorm:"foreignKey:GrupeID"`
+	   	GrupeID *uint
+	   	Grupe   Grupe `gorm:"foreignKey:GrupeID"` */
 
-	Sektoriai          []Sektorius   `gorm:"foreignKey:NarysID"`
+	NarysRoleGrupe []NarysRoleGrupe `gorm:"foreignKey:NarysID"`
+
+	Paskolos           []Paskola     `gorm:"foreignKey:NarysID"`
 	IsiustiPakvietimai []Pakvietimas `gorm:"foreignKey:PakvietePasiunteID"`
 	GautiPakvietimai   []Pakvietimas `gorm:"foreignKey:PakvietePriimeID"`
 }

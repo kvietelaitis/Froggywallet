@@ -14,6 +14,7 @@ func init() {
 	initializers.LoadEnvVariables()
 	initializers.ConnectToDatabase()
 	initializers.SyncDatabase()
+	initializers.SeedRoles()
 }
 
 func main() {

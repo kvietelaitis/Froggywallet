@@ -10,5 +10,7 @@ type Role struct {
 	RolesPavadinimas string `gorm:"unique;not null"` // Role name
 
 	// Relationships
-	Nariai []Narys `gorm:"foreignKey:RoleID"`
+	/* 	Nariai []Narys `gorm:"foreignKey:RoleID"` */
+
+	NarysRoleGrupe []NarysRoleGrupe `gorm:"foreignKey:RoleID"`
 }

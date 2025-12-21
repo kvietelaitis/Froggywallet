@@ -7,6 +7,7 @@ type Group = {
     id: string;
     name: string;
     members: string[];
+    isAdmin: boolean;
 }
 
 export default function GroupsPage(){
@@ -16,7 +17,6 @@ export default function GroupsPage(){
     const [loading, setLoading] = useState(true);
     const [groupsLoading, setGroupsLoading] = useState(false);
     const [showInvite, setShowInvite] = useState(false);
-    const [currentUserRole, setCurrentUserRole] = useState<string>("");
     const navigate = useNavigate();
 
     const [openGroupInfo, setOpenGroup] = useState(false);
@@ -58,18 +58,17 @@ export default function GroupsPage(){
 
            if (response.ok) {
             const json = await response.json();
-            let data = json.data ?? [];
+            let data = json.data.groups ?? [];
             if (!Array.isArray(data)) data = [data];
 
             const mapped = data.map((g: any) => ({
             id: String(g.ID ?? g.id ?? ''),
             name: g.Pavadinimas ?? g.name ?? '',
-            members: (g.Nariai ?? g.members ?? []).map((m: any) =>
-                m.Vardas ?? m.VartotojoVardas ?? m.ElPastas ?? ''
-            ),
+            members: (g.members ?? []).map((m: any) => m.name ?? m.vardas ?? m.username ?? m.email ?? ''),
+            role: g.role ?? '',
+            isAdmin: !!g.isAdmin,
             }));
             setGroups(mapped);
-            setCurrentUserRole(json.currentUserRole ?? '');
            }
         } catch (err) {
             setError("Network error");
@@ -104,7 +103,7 @@ export default function GroupsPage(){
                     </div>
                     <div style={{ marginLeft: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <button onClick={() => setOpenGroup(true)} style={{ padding: '6px 10px' }}>Open</button>
-                    {(currentUserRole === "Admin" || currentUserRole === "Administratorius") && (
+                    {(g.isAdmin) && (
                         <button onClick={() => setShowInvite(true)} style={{ padding: '6px 10px' }}>Invite Member</button>
                     )}
                     </div>
