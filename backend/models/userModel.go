@@ -15,7 +15,7 @@ type Narys struct {
 	TwoFactorEnabled bool   `gorm:"default:false"`
 
 	// Relationships
-	Sektoriai          []Sektorius   `gorm:"foreignKey:NarysID"`
+	Investicijos	   []Investicija `gorm:"foreignKey:NarysID" json:"investicijos"`
 	Roles              []Role        `gorm:"many2many:narys_roles;"`
 	Grupes             []Grupe       `gorm:"many2many:grupe_nariai;"`
 	IsiustiPakvietimai []Pakvietimas `gorm:"foreignKey:PakvietePasiunteID"`

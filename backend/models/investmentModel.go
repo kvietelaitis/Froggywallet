@@ -1,15 +1,22 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 type Investicija struct {
 	gorm.Model
-	NarysID      uint      `json:"narys_id"`
-	Pavadinimas  string    `json:"pavadinimas"`
-	Kiekis       int       `json:"kiekis"`
-	PirkimoKaina float64   `json:"pirkimo_kaina"`
-	PirkimoData  time.Time `json:"pirkimo_data"`
-	SektoriusID  uint      `json:"sektorius_id"`
-	
-	SektoriusObj *Sektorius `gorm:"foreignKey:SektoriusID" json:"SektoriusObj,omitempty"`
+	ID           uint       `gorm:"primaryKey" json:"id"`
+	NarysID      *uint      `gorm:"default:null" json:"narys_id"`
+	SektoriusID  uint       `gorm:"not null" json:"sektorius_id"`
+	Pavadinimas  string     `gorm:"not null" json:"pavadinimas"`
+	Kiekis       int        `gorm:"not null" json:"kiekis"`
+	PirkimoKaina float64    `gorm:"not null" json:"pirkimo_kaina"`
+	PirkimoData  time.Time  `gorm:"not null" json:"pirkimo_data"`
+
+	// Relationships (optional)
+	Narys        *Narys     `gorm:"foreignKey:NarysID" json:"narys,omitempty"`
+	SektoriusObj Sektorius  `gorm:"foreignKey:SektoriusID" json:"SektoriusObj"`
 }
