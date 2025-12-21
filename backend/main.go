@@ -48,6 +48,7 @@ func main() {
 	api.Post("/logout", controllers.Logout)
 
 	api.Get("/me", middleware.RequireAuth, controllers.Me)
+	api.Get("/reports/group/:groupId", middleware.RequireAuth, controllers.GenerateGroupReport)
 
 	loans := api.Group("/loans", middleware.RequireAuth)
 	loans.Get("/", controllers.GetLoans)
@@ -69,7 +70,7 @@ func main() {
 
 	incomes := api.Group("/incomes", middleware.RequireAuth)
 	incomes.Post("/create-income", controllers.CreateIncome)
-	incomes.Get("/user/:id", controllers.GetIncomes) // Changed from /:id to /user/:id
+	incomes.Get("/", controllers.GetIncomes) // Changed from /:id to /user/:id
 	incomes.Get("/:id", controllers.GetIncome)
 	incomes.Put("/:id", controllers.UpdateIncome)
 	incomes.Delete("/:id", controllers.DeleteIncome)
@@ -125,7 +126,6 @@ func main() {
 	market.Put("/update", controllers.UpdateMarketPrices)
 	market.Get("/assets", controllers.GetMarketAssets)
 	market.Get("/prices", controllers.GetLatestMarketPrices)
-
 
 	// // setup routes
 	// frontend_routes := []string{
