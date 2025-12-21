@@ -21,7 +21,7 @@ type Narys struct {
 	   	Grupe   Grupe `gorm:"foreignKey:GrupeID"` */
 
 	NarysRoleGrupe []NarysRoleGrupe `gorm:"foreignKey:NarysID"`
-
+  Investicijos	   []Investicija `gorm:"foreignKey:NarysID" json:"investicijos"`
 	Paskolos           []Paskola     `gorm:"foreignKey:NarysID"`
 	IsiustiPakvietimai []Pakvietimas `gorm:"foreignKey:PakvietePasiunteID"`
 	GautiPakvietimai   []Pakvietimas `gorm:"foreignKey:PakvietePriimeID"`
