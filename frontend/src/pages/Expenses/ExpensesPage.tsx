@@ -344,15 +344,7 @@ export default function ExpensesPage() {
       <div style={{ maxWidth: 900, margin: "20px auto", width: "100%", textAlign: "center" }}>
         <h1>Expenses</h1>
         {error && <div style={{ background: "#f8d7da", color: "#721c24", padding: 12, borderRadius: 8, marginBottom: 16 }}>{error}</div>}
-        {/* --- Grouping Info --- */}
-        {expenses.length !== allExpenses.length && (
-          <div style={{ margin: "10px 0", fontWeight: "bold" }}>
-            Filtered by:
-            {filterStartDate && <> |date from {filterStartDate}</>}
-            {filterEndDate && <> to {filterEndDate}|</>}
-            {filterCategoryId && <> |category: {categories.find(c => c.ID === filterCategoryId)?.Pavadinimas || "N/A"}|</>}
-          </div>
-        )}
+        
 
         <div
           style={{
@@ -432,6 +424,16 @@ export default function ExpensesPage() {
             </button>
           </div>
         </div>
+
+        {/* --- Grouping Info --- */}
+        {expenses.length !== allExpenses.length && (
+          <div style={{ margin: "10px 0", fontWeight: "bold" }}>
+            Filtered by:
+            {filterStartDate && <> |date from {filterStartDate}</>}
+            {filterEndDate && <> to {filterEndDate}|</>}
+            {filterCategoryId && <> |category: {categories.find(c => c.ID === filterCategoryId)?.Pavadinimas || "N/A"}|</>}
+          </div>
+        )}
 
 
         <table style={{ whiteSpace: "nowrap", width: "100%", marginBottom: "20px", textAlign: "left", borderCollapse: "separate", borderSpacing: "30px 8px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "12px" }}>
