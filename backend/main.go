@@ -104,7 +104,10 @@ func main() {
 
 	categories := api.Group("/categories")
 	categories.Get("/", controllers.GetCategories)
+	categories.Get("/:id", controllers.GetCategory)
 	categories.Post("/", controllers.CreateCategory)
+	categories.Put("/:id", controllers.UpdateCategory)
+	categories.Delete("/:id", controllers.DeleteCategory)
 
 	// // setup routes
 	// frontend_routes := []string{

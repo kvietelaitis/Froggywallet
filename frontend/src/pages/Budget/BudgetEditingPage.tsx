@@ -152,7 +152,7 @@ function BudgetEditPage() {
                 </button>
 
                 <button onClick={() => navigate(-1)} style={{ backgroundColor: '#ccc' }}>
-                Cancel
+                    Cancel
                 </button>
             </div>
         </div>
