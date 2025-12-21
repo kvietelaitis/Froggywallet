@@ -99,6 +99,24 @@ func main() {
 	categories.Get("/", controllers.GetCategories)
 	categories.Post("/", controllers.CreateCategory)
 
+	// Investment routes
+	investments := api.Group("/investments", middleware.RequireAuth)
+	investments.Get("/", controllers.GetInvestments)
+	investments.Post("/", controllers.CreateInvestment)
+	investments.Delete("/:id", controllers.DeleteInvestment)
+
+	// Sektoriai routes
+	api.Get("/sektoriai", controllers.GetSektoriai)
+
+	// Rinkos duomenu routes
+	market := api.Group("/market")
+	market.Get("/names", controllers.GetMarketAssetNames)
+	market.Post("/seed", controllers.SeedMarketAssets)
+	market.Put("/update", controllers.UpdateMarketPrices)
+	market.Get("/assets", controllers.GetMarketAssets)
+	market.Get("/prices", controllers.GetLatestMarketPrices)
+
+
 	// // setup routes
 	// frontend_routes := []string{
 	// 	"/",

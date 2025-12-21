@@ -8,15 +8,15 @@ import (
 
 type Investicija struct {
 	gorm.Model
-	ID           uint      `gorm:"primaryKey"`
-	SektoriusID  uint      `gorm:"not null"`
-	Pavadinimas  string    `gorm:"not null"` // Name
-	Kiekis       int       `gorm:"not null"` // Quantity
-	PirkimoKaina float64   `gorm:"not null"` // Purchase price
-	PirkimoData  time.Time `gorm:"not null"` // Purchase date
-	Sektorius    string    // Sector/Industry
+	ID           uint       `gorm:"primaryKey" json:"id"`
+	NarysID      *uint      `gorm:"default:null" json:"narys_id"`
+	SektoriusID  uint       `gorm:"not null" json:"sektorius_id"`
+	Pavadinimas  string     `gorm:"not null" json:"pavadinimas"`
+	Kiekis       int        `gorm:"not null" json:"kiekis"`
+	PirkimoKaina float64    `gorm:"not null" json:"pirkimo_kaina"`
+	PirkimoData  time.Time  `gorm:"not null" json:"pirkimo_data"`
 
-	// Relationships
-	SektoriusObj   Sektorius        `gorm:"foreignKey:SektoriusID"`
-	RinkosDuomenys []RinkosDuomenys `gorm:"foreignKey:InvesticijaID"`
+	// Relationships (optional)
+	Narys        *Narys     `gorm:"foreignKey:NarysID" json:"narys,omitempty"`
+	SektoriusObj Sektorius  `gorm:"foreignKey:SektoriusID" json:"SektoriusObj"`
 }
