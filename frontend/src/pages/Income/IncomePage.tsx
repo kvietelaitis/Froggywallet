@@ -5,7 +5,7 @@ type Income = {
     ID: number;
     Aprasymas: string;
     Suma: number;
-    Data: string; // ISO string from backend
+    Data: string;
     Valiuta?: string;
 };
 
@@ -13,16 +13,28 @@ export default function IncomePage(){
     const [user, setUser] = useState<any>(null);
     const [incomes, setIncomes] = useState<Income[]>([]);
     const [error, setError] = useState('');
-    const [loading, setLoading] = useState(true); // Start true
+    const [loading, setLoading] = useState(true);
     const [deletingId, setDeletingId] = useState<number | null>(null);
     const [deleting, setDeleting] = useState(false);
+    const [showReportModal, setShowReportModal] = useState(false);
+    const [reportGroupId, setReportGroupId] = useState<string>(() => {
+      try {
+        return localStorage.getItem('selectedGroupId') ?? '';
+      } catch {
+        return '';
+      }
+    });
+    const [reportStart, setReportStart] = useState<string>('');
+    const [reportEnd, setReportEnd] = useState<string>('');
+    const [generating, setGenerating] = useState(false);
+    const [reportError, setReportError] = useState<string | null>(null);
+    const [reportUrl, setReportUrl] = useState<string | null>(null);
+
     const navigate = useNavigate();
 
-    // Helper for currency formatting
     const formatCurrency = (amount: number, currency: string = 'EUR') => 
         new Intl.NumberFormat("en-US", { style: "currency", currency: currency }).format(amount);
 
-    // 1. Fetch User
     useEffect(() => {
         (async () => {
             try {
@@ -37,7 +49,6 @@ export default function IncomePage(){
         })();
     }, []);
 
-    // 2. Fetch Incomes when User is ready
     useEffect(() => {
         if (user) {
             fetchIncomes();
@@ -47,7 +58,9 @@ export default function IncomePage(){
     const fetchIncomes = async () => {
         setLoading(true);
         try {
-            const res = await fetch(`/api/incomes/user/${user.id}`, { 
+            const groupId = localStorage.getItem('selectedGroupId');
+            const url = groupId ? `/api/incomes?grupe_id=${encodeURIComponent(groupId)}` : `/api/incomes/user/${user.id}`;
+            const res = await fetch(url, { 
                 credentials: 'include',
                 method: 'GET',
                 headers: { "Content-Type": "application/json" } 
@@ -95,7 +108,47 @@ export default function IncomePage(){
             setDeleting(false);
         }
     };
-    
+
+    const handleGenerateReport = async (e?: React.FormEvent) => {
+        e?.preventDefault();
+        setReportError(null);
+        setReportUrl(null);
+
+        if (!reportGroupId) {
+            setReportError('Group ID is required');
+            return;
+        }
+        if (!reportStart || !reportEnd) {
+            setReportError('Start and end dates are required');
+            return;
+        }
+
+        setGenerating(true);
+        try {
+            const url = `/api/reports/group/${encodeURIComponent(reportGroupId)}?start=${encodeURIComponent(reportStart)}&end=${encodeURIComponent(reportEnd)}`;
+            const res = await fetch(url, {
+                method: 'GET',
+                credentials: 'include',
+                headers: { 'Accept': 'application/json' }
+            });
+            const body = await res.json();
+            if (!res.ok) {
+                setReportError(body.error || 'Failed to generate report');
+            } else if (body.pdf_url) {
+                setReportUrl(body.pdf_url);
+                // open in new tab
+                window.open(body.pdf_url, '_blank');
+                setShowReportModal(false);
+            } else {
+                setReportError('No PDF URL returned');
+            }
+        } catch (err) {
+            setReportError('Network error while generating report');
+        } finally {
+            setGenerating(false);
+        }
+    };
+
     if (loading && !user) return <div className="auth-container"><p>Loading...</p></div>;
 
     return (
@@ -119,9 +172,16 @@ export default function IncomePage(){
                     >
                         + Add Income
                     </button>
+
+                    <button
+                        style={{ flex: 1, minWidth: "150px", height: "50px" }}
+                        onClick={() => setShowReportModal(true)}
+                    >
+                        Generate Report
+                    </button>
                 </div>
 
-                {/* Empty State */}
+                {/* Empty State or List */}
                 {incomes.length === 0 && !loading ? (
                     <div style={{ textAlign: "center", padding: "40px", background: "var(--bg-card)", borderRadius: "12px", border: "1px solid var(--border)" }}>
                         <p style={{ color: "var(--text-secondary)", fontSize: "1.1rem" }}>
@@ -130,12 +190,9 @@ export default function IncomePage(){
                         <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>Track your earnings by clicking the button above.</p>
                     </div>
                 ) : (
-                    /* Income List */
                     <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                         {incomes.map((inc) => (
                             <div key={inc.ID} className="card" style={{ padding: "20px" }}>
-                                
-                                {/* Card Header */}
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
                                     <div>
                                         <h3 style={{ margin: "0 0 8px 0" }}>{inc.Aprasymas}</h3>
@@ -150,7 +207,6 @@ export default function IncomePage(){
                                     </div>
                                 </div>
 
-                                {/* Card Details Grid */}
                                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "12px", marginBottom: "16px" }}>
                                     <div>
                                         <div style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Date</div>
@@ -162,7 +218,6 @@ export default function IncomePage(){
                                     </div>
                                 </div>
 
-                                {/* Card Actions */}
                                 <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", paddingTop: "16px", borderTop: "1px solid var(--border)" }}>
                                     <button 
                                         style={{ flex: 1, minWidth: "100px", padding: "10px" }} 
@@ -213,6 +268,37 @@ export default function IncomePage(){
                 </div>
             </div>
         </div>
+        )}
+
+        {/* Report modal */}
+        {showReportModal && (
+            <div style={{
+                position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
+            }}>
+                <form onSubmit={handleGenerateReport} style={{ background: 'var(--bg-card)', padding: "24px", borderRadius: "12px", width: "100%", maxWidth: "420px", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
+                    <h3 style={{ marginTop: 0 }}>Generate PDF Report</h3>
+
+                    <label style={{ display: 'block', marginTop: 8, fontSize: 12, color: 'var(--text-secondary)' }}>Group ID</label>
+                    <input value={reportGroupId} onChange={e => setReportGroupId(e.target.value)} style={{ width: '100%', padding: 8, marginTop: 6 }} />
+
+                    <label style={{ display: 'block', marginTop: 12, fontSize: 12, color: 'var(--text-secondary)' }}>Start Date</label>
+                    <input type="date" value={reportStart} onChange={e => setReportStart(e.target.value)} style={{ width: '100%', padding: 8, marginTop: 6 }} />
+
+                    <label style={{ display: 'block', marginTop: 12, fontSize: 12, color: 'var(--text-secondary)' }}>End Date</label>
+                    <input type="date" value={reportEnd} onChange={e => setReportEnd(e.target.value)} style={{ width: '100%', padding: 8, marginTop: 6 }} />
+
+                    {reportError && <div style={{ color: '#dc3545', marginTop: 12 }}>{reportError}</div>}
+                    {reportUrl && <div style={{ marginTop: 12 }}>PDF: <a href={reportUrl} target="_blank" rel="noreferrer">{reportUrl}</a></div>}
+
+                    <div style={{ display: 'flex', gap: "8px", justifyContent: 'flex-end', marginTop: 18 }}>
+                        <button type="button" onClick={() => { setShowReportModal(false); setReportError(null); }} style={{ backgroundColor: "transparent", border: "1px solid var(--border)", padding: '8px 12px' }} disabled={generating}>Cancel</button>
+                        <button type="submit" disabled={generating} style={{ padding: '8px 12px' }}>
+                            {generating ? 'Generating...' : 'Get PDF'}
+                        </button>
+                    </div>
+                </form>
+            </div>
         )}
     </div>
 );

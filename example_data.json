@@ -1,0 +1,40 @@
+{
+  "user": {
+    "first_name": "Jonas",
+    "last_name": "Jonaitis",
+    "email": "jonas@example.com",
+    "username": "jonasj"
+  },
+  "group": {
+    "name": "Šeimos biudžetas"
+  },
+  "incomes": [
+    {
+      "amount": 2500,
+      "date": "2025-12-05",
+      "description": "Alga",
+      "currency": "EUR"
+    },
+    {
+      "amount": 2500,
+      "date": "2025-12-20",
+      "description": "Premija",
+      "currency": "EUR"
+    }
+  ],
+  "expenses": [
+    {
+      "amount": 1200,
+      "date": "2025-12-10",
+      "name": "Nuoma",
+      "comment": "Butas"
+    },
+    {
+      "amount": 200,
+      "date": "2025-12-12",
+      "name": "Maistas",
+      "comment": "Parduotuvė"
+    }
+  ],
+  "report_date": "2025-12-21"
+}

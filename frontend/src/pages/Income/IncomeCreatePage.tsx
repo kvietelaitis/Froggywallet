@@ -26,6 +26,9 @@ function IncomeCreationPage() {
             // convert Date to YYYY-MM-DD string when sending
             const dateString = date ? date.toISOString().split("T")[0] : "";
 
+            const selectedGroup = localStorage.getItem('selectedGroupId');
+            const grupeId = selectedGroup ? Number(selectedGroup) : undefined;
+
             const response = await fetch(`${API_URL}/incomes/create-income`, {
                 credentials: 'include',
                 method: 'POST',
@@ -37,6 +40,7 @@ function IncomeCreationPage() {
                     amount,
                     date: dateString,
                     currency,
+                    grupe_id: grupeId,
                 }),
             });
 

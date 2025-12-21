@@ -8,9 +8,8 @@ import (
 
 type Pajama struct {
 	gorm.Model
-	ID          uint      `gorm:"primaryKey"`
-	NarysID     uint      `gorm:` // Add UserID foreign key
-	BiudzetasID *uint     // Optional budget ID
+	ID          uint `gorm:"primaryKey"`
+	GrupeID     *uint
 	Data        time.Time `gorm:"not null"`
 	Suma        float64   `gorm:"not null"`
 	Aprasymas   string    // Description
@@ -18,6 +17,5 @@ type Pajama struct {
 	IvedimoData time.Time `gorm:"default:CURRENT_TIMESTAMP"` // Entry date
 
 	// Relationships
-	Narys     Narys      `gorm:"foreignKey:NarysID"` // Add User relationship
-	Biudzetas *Biudzetas `gorm:"foreignKey:BiudzetasID"`
+	Grupe *Grupe `gorm:"foreignKey:GrupeID"`
 }

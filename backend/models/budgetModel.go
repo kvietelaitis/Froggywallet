@@ -21,7 +21,6 @@ type Biudzetas struct {
 	Statusas            string    // Status
 
 	// Relationships
-	Grupe   *Grupe   `gorm:"foreignKey:GrupeID"`
-	Pajamos []Pajama `gorm:"foreignKey:BiudzetasID"`
-	Ribos   []Riba   `gorm:"foreignKey:BiudzetasID"`
+	Grupe *Grupe `gorm:"foreignKey:GrupeID"`
+	Ribos []Riba `gorm:"foreignKey:BiudzetasID"`
 }
