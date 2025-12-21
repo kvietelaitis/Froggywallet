@@ -74,6 +74,13 @@ func main() {
 	incomes.Put("/:id", controllers.UpdateIncome)
 	incomes.Delete("/:id", controllers.DeleteIncome)
 
+	budgets := api.Group("/budgets", middleware.RequireAuth)
+	budgets.Get("/", controllers.GetBudgets)
+	budgets.Post("/", controllers.CreateBudget)
+	budgets.Get("/:id", controllers.GetBudget)
+	budgets.Put("/:id", controllers.EditBudget)
+	budgets.Delete("/:id", controllers.DeleteBudget)
+
 	groups := api.Group("/groups", middleware.RequireAuth)
 	groups.Get("/:id", controllers.GetUserGroups)
 	groups.Get("/info/:id", controllers.GetGroup)
@@ -88,7 +95,7 @@ func main() {
 	user.Put("/change-info/:id", controllers.ChangeUserInfo)
 	user.Put("/change-password/:id", controllers.ChangePassword)
 
-	expenses := api.Group("/expenses")
+	expenses := api.Group("/expenses", middleware.RequireAuth)
 	expenses.Get("/", controllers.GetExpenses)
 	expenses.Get("/:id", controllers.GetExpense)
 	expenses.Post("/", controllers.CreateExpense)
@@ -97,7 +104,10 @@ func main() {
 
 	categories := api.Group("/categories")
 	categories.Get("/", controllers.GetCategories)
+	categories.Get("/:id", controllers.GetCategory)
 	categories.Post("/", controllers.CreateCategory)
+	categories.Put("/:id", controllers.UpdateCategory)
+	categories.Delete("/:id", controllers.DeleteCategory)
 
 	// Investment routes
 	investments := api.Group("/investments", middleware.RequireAuth)

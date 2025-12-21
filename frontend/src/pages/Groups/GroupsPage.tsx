@@ -102,6 +102,11 @@ export default function GroupsPage(){
         }
     }
 
+    const handleSelectGroup = (groupId: string) => {
+        localStorage.setItem('selectedGroupId', groupId);
+        alert('Group selected!');
+    }
+
     return (
         <div>
         <div
@@ -162,6 +167,11 @@ export default function GroupsPage(){
                     </p>
                     </div>
                     <div style={{ marginLeft: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <button 
+                        onClick={() => handleSelectGroup(g.id)} 
+                        style={{ padding: '6px 10px'}}>
+                        Select
+                    </button>
                     <button onClick={() => setOpenGroup(true)} style={{ padding: '6px 10px' }}>Open</button>
                     {(g.isAdmin) && (
                         <>

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUser } from '../../_components/Users/UserProvider';
 
 type Income = {
     ID: number;
@@ -14,26 +13,31 @@ export default function IncomePage(){
     const [user, setUser] = useState<any>(null);
     const [incomes, setIncomes] = useState<Income[]>([]);
     const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true); // Start true
     const [deletingId, setDeletingId] = useState<number | null>(null);
     const [deleting, setDeleting] = useState(false);
     const navigate = useNavigate();
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch("/api/me", { credentials: "include" });
-        if (!res.ok) throw new Error("Failed to load user");
-        const json = await res.json();
-        setUser(json.data);
-      } catch (err) {
-        setError("Unable to load user");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+    // Helper for currency formatting
+    const formatCurrency = (amount: number, currency: string = 'EUR') => 
+        new Intl.NumberFormat("en-US", { style: "currency", currency: currency }).format(amount);
 
+    // 1. Fetch User
+    useEffect(() => {
+        (async () => {
+            try {
+                const res = await fetch("/api/me", { credentials: "include" });
+                if (!res.ok) throw new Error("Failed to load user");
+                const json = await res.json();
+                setUser(json.data);
+            } catch (err) {
+                setError("Unable to load user");
+                setLoading(false);
+            }
+        })();
+    }, []);
+
+    // 2. Fetch Incomes when User is ready
     useEffect(() => {
         if (user) {
             fetchIncomes();
@@ -43,16 +47,14 @@ export default function IncomePage(){
     const fetchIncomes = async () => {
         setLoading(true);
         try {
-            // Updated URL to match backend change
             const res = await fetch(`/api/incomes/user/${user.id}`, { 
                 credentials: 'include',
                 method: 'GET',
                 headers: { "Content-Type": "application/json" } 
             });
             const data = await res.json();
-            // backend may return array or { incomes: [...] }
             const items = (data.incomes ?? data ?? []) as any[];
-            // map to typed shape (keep original field names)
+            
             setIncomes(items.map(i => ({
                 ID: i.ID,
                 Aprasymas: i.Aprasymas ?? "",
@@ -94,56 +96,124 @@ export default function IncomePage(){
         }
     };
     
+    if (loading && !user) return <div className="auth-container"><p>Loading...</p></div>;
+
     return (
-        <div>
-            <h1>Income Page</h1>
-            
-            <div style={{ marginBottom: '1rem'}}>
-                <button onClick={() => navigate('create-income')}>Create Income</button>
-            </div>
+        <div className="auth-container">
+            <div style={{ maxWidth: 900, margin: "20px auto", width: "100%" }}>
+                
+                <h1 style={{ textAlign: "center", marginBottom: "24px" }}>Income Management</h1>
 
-            {loading && <p>Loading income...</p>}
-            {error && <p style={{color: 'red'}}>Error: {error}</p>}
+                {error && (
+                    <div style={{ background: "#f8d7da", color: "#721c24", padding: "12px", borderRadius: "8px", marginBottom: "16px", display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>{error}</span>
+                        <button onClick={() => setError('')} style={{ background: 'transparent', border: 'none', color: '#721c24', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
+                    </div>
+                )}
+                
+                {/* Top Action Buttons */}
+                <div style={{ display: "flex", gap: "10px", marginBottom: "24px" }}>
+                    <button 
+                        style={{ flex: 1, minWidth: "150px", height: "50px" }} 
+                        onClick={() => navigate('create-income')}
+                    >
+                        + Add Income
+                    </button>
+                </div>
 
-            {incomes.length === 0 ? (<p>No income yet.</p>) : (
-                <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                    {incomes.map((inc) => (
-                        <li key={inc.ID} style={{ padding: 12, borderBottom: "1px solid #eee", display: "flex", justifyContent: "space-between" }}>
-                            <div>
-                                <div style={{ fontWeight: 600 }}>{inc.Aprasymas}</div>
-                                <div style={{ fontSize: 12, color: "#666" }}>
-                                    {new Date(inc.Data).toLocaleDateString()} · {inc.Valiuta}
+                {/* Empty State */}
+                {incomes.length === 0 && !loading ? (
+                    <div style={{ textAlign: "center", padding: "40px", background: "var(--bg-card)", borderRadius: "12px", border: "1px solid var(--border)" }}>
+                        <p style={{ color: "var(--text-secondary)", fontSize: "1.1rem" }}>
+                            You haven't added any income records yet.
+                        </p>
+                        <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>Track your earnings by clicking the button above.</p>
+                    </div>
+                ) : (
+                    /* Income List */
+                    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                        {incomes.map((inc) => (
+                            <div key={inc.ID} className="card" style={{ padding: "20px" }}>
+                                
+                                {/* Card Header */}
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
+                                    <div>
+                                        <h3 style={{ margin: "0 0 8px 0" }}>{inc.Aprasymas}</h3>
+                                        <span style={{ background: "#e6f4ea", color: "#1e7e34", padding: "4px 12px", borderRadius: "20px", fontSize: "12px", fontWeight: "600" }}>
+                                            Received
+                                        </span>
+                                    </div>
+                                    <div style={{ textAlign: "right" }}>
+                                        <div style={{ fontSize: "24px", fontWeight: "bold", color: "#28a745" }}>
+                                            {formatCurrency(inc.Suma, inc.Valiuta)}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Card Details Grid */}
+                                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "12px", marginBottom: "16px" }}>
+                                    <div>
+                                        <div style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Date</div>
+                                        <div style={{ fontWeight: "500" }}>{new Date(inc.Data).toLocaleDateString()}</div>
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Currency</div>
+                                        <div style={{ fontWeight: "500" }}>{inc.Valiuta}</div>
+                                    </div>
+                                </div>
+
+                                {/* Card Actions */}
+                                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", paddingTop: "16px", borderTop: "1px solid var(--border)" }}>
+                                    <button 
+                                        style={{ flex: 1, minWidth: "100px", padding: "10px" }} 
+                                        onClick={() => navigate(`edit-income/${inc.ID}`)}
+                                    >
+                                        Edit
+                                    </button>
+                                    <button 
+                                        style={{ flex: 1, minWidth: "100px", padding: "10px", backgroundColor: "#dc3545", color: "white" }} 
+                                        onClick={() => confirmDelete(inc.ID)}
+                                    >
+                                        Delete
+                                    </button>
                                 </div>
                             </div>
-                            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                <div style={{ fontWeight: 700 }}>${inc.Suma.toFixed(2)}</div>
-                                <button onClick={() => navigate(`edit-income/${inc.ID}`)}>Edit</button>
-                                <button onClick={() => confirmDelete(inc.ID)}>Delete</button>
-                            </div>
-                        </li>
-                    ))}
-                </ul>
+                        ))}
+                    </div>
+                )}
+            </div>
 
-            )}
             {/* Delete confirmation modal */}
             {deletingId !== null && (
                 <div style={{
-                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
+                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
                 }}>
-                    <div style={{ background: '#fff', padding: 20, borderRadius: 8, width: 360 }}>
-                        <h3>Confirm delete</h3>
-                        <p>Are you sure you want to delete this income?</p>
-                        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                            <button onClick={cancelDelete} disabled={deleting}>Cancel</button>
-                            <button onClick={deleteIncome} disabled={deleting}>
-                                {deleting ? 'Deleting…' : 'Delete'}
+                    <div style={{ background: 'var(--bg-card)', padding: "24px", borderRadius: "12px", width: "100%", maxWidth: "400px", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
+                        <h3 style={{ marginTop: 0 }}>Confirm Deletion</h3>
+                        <p style={{ color: "var(--text-secondary)" }}>Are you sure you want to delete this income record? This action cannot be undone.</p>
+                        
+                        {error && <div style={{ color: '#dc3545', marginBottom: "16px", fontSize: "0.9rem" }}>{error}</div>}
+
+                        <div style={{ display: 'flex', gap: "12px", justifyContent: 'flex-end', marginTop: "24px" }}>
+                            <button 
+                                onClick={cancelDelete} 
+                                disabled={deleting}
+                                style={{ backgroundColor: "transparent", color: "var(--text-primary)", border: "1px solid var(--border)" }}
+                            >
+                                Cancel
                             </button>
-                        </div>
-                        {error && <div style={{ color: 'red', marginTop: 8 }}>{error}</div>}
-                    </div>
+                            <button 
+                                onClick={deleteIncome} 
+                                disabled={deleting}
+                                style={{ backgroundColor: "#dc3545", color: "white" }}
+                            >
+                        {deleting ? 'Deleting...' : 'Delete Record'}
+                    </button>
                 </div>
-            )}
+            </div>
         </div>
-    );
+        )}
+    </div>
+);
 }
